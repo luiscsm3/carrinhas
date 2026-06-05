@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Perfis — leitura pública, escrita pública (sem auth)
+    // Segurança feita no cliente via palavra-passe com hash
+    match /perfis/{perfilId} {
+      allow read: if true;
+      allow write: if true;
+
+      // Carrinhas de cada perfil
+      match /carrinhas/{carrinhaId} {
+        allow read: if true;
+        allow write: if true;
+      }
+    }
+  }
+}

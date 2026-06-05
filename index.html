@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestão de Carrinhas</title>
 <link rel="icon" type="image/png" href="35.png">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="Carrinhas.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
 <div id="view-perfis">
   <header>
     <div class="header-left">
-      <h1>Carrinhas</h1>
+      <h1>Veículos</h1>
     </div>
     <div class="header-actions">
       <button class="btn-theme" id="btn-theme" onclick="toggleTheme()">🌙 Escuro</button>
@@ -42,14 +42,50 @@
     </div>
     <div class="header-actions">
       <button class="btn-theme" id="btn-theme-carrinhas" onclick="toggleTheme()">🌙 Escuro</button>
-      <input class="search-input" id="search-carrinhas" type="text" placeholder="🔍 Pesquisar matrícula..." oninput="filtrarCarrinhas(this.value)" />
+      <input class="search-input" id="search-carrinhas" type="text" placeholder="🔍 Pesquisar matrícula" oninput="filtrarCarrinhas(this.value)" />
+      <button class="btn-ghost btn-view-toggle" id="btn-view-toggle" onclick="toggleViewMode()" title="Alternar vista">⊞</button>
       <button class="btn-ghost" onclick="exportarDados()">⬇ Exportar</button>
-      <button class="btn-ghost" onclick="abrirCalculadora()">🧮 Calculadora</button>
+      <button class="btn-ghost" onclick="abrirCalculadora()">Calculadora</button>
       <button class="btn-primary" onclick="abrirModalCarrinha()">+ Adicionar veículo</button>
     </div>
   </header>
 
   <div id="sync-indicator" class="sync-indicator"></div>
+
+  <div class="filtros-bar" id="filtros-bar">
+    <select class="filtro-select" id="filtro-marca" onchange="aplicarFiltros()">
+      <option value="">Todas as marcas</option>
+    </select>
+    <select class="filtro-select" id="filtro-tipo" onchange="aplicarFiltros()">
+      <option value="">Todos os tipos</option>
+      <option value="Carrinha">🚐 Carrinha</option>
+      <option value="Carro">🚗 Carro</option>
+      <option value="Mota">🏍️ Mota</option>
+      <option value="Barco">⛵ Barco</option>
+    </select>
+    <select class="filtro-select" id="filtro-carga" onchange="aplicarFiltros()">
+      <option value="">Toda a carga</option>
+      <option>Vazio</option>
+      <option>Petróleo</option>
+      <option>Ópio</option>
+      <option>Metafetamina</option>
+      <option>Cocaína</option>
+      <option>Materiais</option>
+      <option>Armas</option>
+      <option>Dinheiro Sujo</option>
+      <option>Erva</option>
+      <option>CAIXAS</option>
+      <option>Cenas Random</option>
+    </select>
+    <select class="filtro-select" id="filtro-status" onchange="aplicarFiltros()">
+      <option value="">Todos os status</option>
+      <option>Vazio</option>
+      <option>Processado</option>
+      <option>Não Processado</option>
+    </select>
+    <button class="filtro-limpar" id="filtro-limpar" onclick="limparFiltros()" style="display:none;">✕ Limpar</button>
+  </div>
+
   <div id="carrinhas-grid" class="carrinhas-grid"></div>
   <div id="carrinhas-empty" class="empty-state" style="display:none;">
     <div class="empty-icon"><img src="35.png" style="width:64px;height:64px;object-fit:contain;" /></div>
@@ -66,9 +102,9 @@
     </div>
 
     <div class="calc-tabs">
-      <button class="calc-tab active" id="tab-drogas" onclick="calcTab('drogas')">💊 Drogas</button>
-      <button class="calc-tab" id="tab-armas" onclick="calcTab('armas')">🔫 Armas</button>
-      <button class="calc-tab" id="tab-acessorios" onclick="calcTab('acessorios')">🎒 Acessórios</button>
+      <button class="calc-tab active" id="tab-drogas" onclick="calcTab('drogas')">Drogas</button>
+      <button class="calc-tab" id="tab-armas" onclick="calcTab('armas')">Armas</button>
+      <button class="calc-tab" id="tab-acessorios" onclick="calcTab('acessorios')">Acessórios</button>
     </div>
 
     <!-- DROGAS -->
@@ -85,24 +121,42 @@
               <option value="petroleo">Petróleo</option>
             </select>
           </div>
-          <div class="calc-field" style="max-width:100px;">
+          <div class="calc-field" style="max-width:110px;">
             <label>Quantidade</label>
             <input id="c-qtd" type="number" min="1" value="1" oninput="calcDrogas()" />
           </div>
         </div>
-        <div class="calc-field">
-          <label>Tipo</label>
-          <select id="c-tipo" onchange="calcDrogas()">
-            <option value="civil">Civil</option>
-            <option value="limpo">Contratado Limpo</option>
-            <option value="sujo">Contratado Sujo</option>
-          </select>
-        </div>
       </div>
-      <div class="calc-result">
-        <div class="calc-total" id="calc-droga-total">—</div>
-        <div class="calc-detail" id="calc-droga-detail"></div>
-      </div>
+      <table class="calc-table">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Unitário</th>
+            <th id="calc-droga-th-qtd">(1×)</th>
+            <th id="calc-droga-th-car">Carrinha (600×)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="calc-tr-org">
+            <td>Organização</td>
+            <td id="cd-unit-sujo">—</td>
+            <td id="cd-total-sujo">—</td>
+            <td id="cd-car-sujo">—</td>
+          </tr>
+          <tr class="calc-tr-cont">
+            <td>Contratados</td>
+            <td id="cd-unit-limpo">—</td>
+            <td id="cd-total-limpo">—</td>
+            <td id="cd-car-limpo">—</td>
+          </tr>
+          <tr class="calc-tr-civil">
+            <td>Civil</td>
+            <td id="cd-unit-civil">—</td>
+            <td id="cd-total-civil">—</td>
+            <td id="cd-car-civil">—</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <!-- ARMAS -->
@@ -129,24 +183,39 @@
               <option value="spaz12">Spaz 12</option>
             </select>
           </div>
-          <div class="calc-field" style="max-width:100px;">
+          <div class="calc-field" style="max-width:110px;">
             <label>Quantidade</label>
             <input id="c-arma-qtd" type="number" min="1" value="1" oninput="calcArmas()" />
           </div>
         </div>
-        <div class="calc-field">
-          <label>Tipo</label>
-          <select id="c-arma-tipo" onchange="calcArmas()">
-            <option value="civil">Civil</option>
-            <option value="com_mat">Contratado com Materiais</option>
-            <option value="sem_mat">Contratado sem Materiais</option>
-          </select>
-        </div>
       </div>
-      <div class="calc-result">
-        <div class="calc-total" id="calc-arma-total">—</div>
-        <div class="calc-detail" id="calc-arma-detail"></div>
-      </div>
+      <table class="calc-table">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Unitário</th>
+            <th id="calc-arma-th-qtd">(1×)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="calc-tr-civil">
+            <td>Civil</td>
+            <td id="ca-unit-civil">—</td>
+            <td id="ca-total-civil">—</td>
+          </tr>
+          <tr class="calc-tr-cont">
+            <td>Com Materiais</td>
+            <td id="ca-unit-com">—</td>
+            <td id="ca-total-com">—</td>
+          </tr>
+          <tr class="calc-tr-org">
+            <td>Sem Materiais</td>
+            <td id="ca-unit-sem">—</td>
+            <td id="ca-total-sem">—</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="calc-materiais" id="ca-materiais"></div>
     </div>
 
     <!-- ACESSÓRIOS -->
@@ -167,24 +236,39 @@
               <option value="id_falso">ID Falso</option>
             </select>
           </div>
-          <div class="calc-field" style="max-width:100px;">
+          <div class="calc-field" style="max-width:110px;">
             <label>Quantidade</label>
             <input id="c-acessorio-qtd" type="number" min="1" value="1" oninput="calcAcessorios()" />
           </div>
         </div>
-        <div class="calc-field">
-          <label>Tipo</label>
-          <select id="c-acessorio-tipo" onchange="calcAcessorios()">
-            <option value="civil">Civil</option>
-            <option value="com_mat">Contratado com Materiais</option>
-            <option value="sem_mat">Contratado sem Materiais</option>
-          </select>
-        </div>
       </div>
-      <div class="calc-result">
-        <div class="calc-total" id="calc-acessorio-total">—</div>
-        <div class="calc-detail" id="calc-acessorio-detail"></div>
-      </div>
+      <table class="calc-table">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Unitário</th>
+            <th id="calc-ac-th-qtd">(1×)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="calc-tr-civil">
+            <td>Civil</td>
+            <td id="ac-unit-civil">—</td>
+            <td id="ac-total-civil">—</td>
+          </tr>
+          <tr class="calc-tr-cont">
+            <td>Com Materiais</td>
+            <td id="ac-unit-com">—</td>
+            <td id="ac-total-com">—</td>
+          </tr>
+          <tr class="calc-tr-org">
+            <td>Sem Materiais</td>
+            <td id="ac-unit-sem">—</td>
+            <td id="ac-total-sem">—</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="calc-materiais" id="ac-materiais"></div>
     </div>
   </div>
 </div>
@@ -218,6 +302,9 @@
       <input id="m-senha-input" type="password" placeholder="Introduz a palavra-passe..." />
     </div>
     <p class="senha-erro" id="senha-erro" style="display:none;">Palavra-passe incorreta.</p>
+    <label class="lembrar-label">
+      <input type="checkbox" id="cb-lembrar" /> Lembrar nesta sessão
+    </label>
     <div class="modal-actions">
       <button class="btn-ghost" onclick="fecharModal('modal-senha')">Cancelar</button>
       <button class="btn-primary" onclick="confirmarSenha()">Entrar</button>
@@ -299,7 +386,7 @@
       </div>
     </div>
     <div class="img-opcoes">
-      <button class="btn-ghost" onclick="document.getElementById('img-file-input').click()">📁 Procurar ficheiro</button>
+      <button class="btn-ghost" onclick="document.getElementById('img-file-input').click()">Procurar ficheiro</button>
       <input id="img-file-input" type="file" accept="image/*" style="display:none;" onchange="carregarFicheiro(this)" />
     </div>
     <div class="field" style="margin-top:12px;">
@@ -337,6 +424,17 @@
 <!-- Lightbox -->
 <div id="lightbox" class="lightbox" onclick="fecharLightbox()" style="display:none;">
   <img id="lightbox-img" src="" />
+</div>
+
+<!-- Modal: Confirmação -->
+<div class="modal-overlay" id="modal-confirm" onclick="if(event.target===this)_confirmReject()">
+  <div class="modal modal-confirm-card">
+    <p class="confirm-msg" id="confirm-msg">Tens a certeza?</p>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="_confirmReject()">Cancelar</button>
+      <button class="btn-confirm-ok" id="confirm-ok-btn" onclick="_confirmResolve()">Confirmar</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>

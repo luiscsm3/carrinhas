@@ -9,6 +9,20 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 
+// ─── SEGURANÇA — HASH SHA-256 ─────────────────────────
+
+async function hashSenha(senha) {
+  const data = new TextEncoder().encode(senha);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function verificarSenha(input, stored) {
+  // Suporte a passwords antigas (plain text) → migra automaticamente para hash
+  if (stored.length !== 64) return input === stored;
+  return (await hashSenha(input)) === stored;
+}
+
 // ─── TEMA ─────────────────────────────────────────────
 function toggleTheme() {
   const html = document.documentElement;
@@ -35,6 +49,20 @@ const db = firebase.firestore();
 
 let perfilAtual = null;
 let unsubCarrinhas = null;
+let viewMode = localStorage.getItem('viewMode') || 'cards';
+
+function toggleViewMode() {
+  viewMode = viewMode === 'cards' ? 'table' : 'cards';
+  localStorage.setItem('viewMode', viewMode);
+  const btn = document.getElementById('btn-view-toggle');
+  if (btn) btn.textContent = viewMode === 'cards' ? '⊞' : '☰';
+  if (unsubCarrinhas) unsubCarrinhas();
+  unsubCarrinhas = db.collection('perfis').doc(perfilAtual).collection('carrinhas')
+    .orderBy('matricula').onSnapshot(snap => {
+      renderCarrinhas(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+}
+window.toggleViewMode = toggleViewMode;
 
 const CARGA_CLASS = {
   'Vazio': 'carga-vazio',
@@ -102,8 +130,9 @@ function renderPerfis(perfis) {
 async function criarPerfil() {
   const nome = document.getElementById('m-perfil-nome').value.trim();
   if (!nome) { toast('Indica um nome.'); return; }
-  const senha = document.getElementById('m-perfil-senha').value;
-  if (!senha) { toast('Indica uma palavra-passe.'); return; }
+  const senhaRaw = document.getElementById('m-perfil-senha').value;
+  if (!senhaRaw) { toast('Indica uma palavra-passe.'); return; }
+  const senha = await hashSenha(senhaRaw);
   const dados = { nome, senha, criadoEm: new Date().toISOString() };
   await db.collection('perfis').add(dados);
   fecharModal('modal-perfil');
@@ -120,9 +149,9 @@ async function eliminarPerfil(id, nome) {
   setTimeout(() => document.getElementById('m-senha-input').focus(), 100);
   _senhaCallback = async (input) => {
     const snap = await db.collection('perfis').doc(id).get();
-    if (snap.data().senha !== input) return false;
+    if (!(await verificarSenha(input, snap.data().senha))) return false;
     fecharModal('modal-senha');
-    if (!confirm(`Eliminar o perfil "${nome}" e todas as suas carrinhas?`)) return true;
+    if (!(await confirmar(`Eliminar o perfil "${nome}" e todas as suas carrinhas?`, 'Eliminar'))) return true;
     const carrinhas = await db.collection('perfis').doc(id).collection('carrinhas').get();
     await Promise.all(carrinhas.docs.map(d => d.ref.delete()));
     await db.collection('perfis').doc(id).delete();
@@ -136,19 +165,28 @@ async function eliminarPerfil(id, nome) {
 let _senhaCallback = null;
 
 function tentarAbrirPerfil(id, nome) {
+  // Verificar sessão guardada
+  if (sessionStorage.getItem(`auth_${id}`) === '1') {
+    abrirPerfil(id, nome);
+    return;
+  }
   document.getElementById('modal-senha-desc').textContent = `Perfil: ${nome}`;
   document.getElementById('m-senha-input').value = '';
   document.getElementById('senha-erro').style.display = 'none';
+  document.getElementById('cb-lembrar').checked = false;
   document.getElementById('modal-senha').classList.add('open');
   setTimeout(() => document.getElementById('m-senha-input').focus(), 100);
   _senhaCallback = async (input) => {
     const snap = await db.collection('perfis').doc(id).get();
-    if (snap.data().senha === input) {
-      fecharModal('modal-senha');
-      abrirPerfil(id, nome);
-      return true;
+    const stored = snap.data().senha;
+    if (!(await verificarSenha(input, stored))) return false;
+    if (stored.length !== 64) await db.collection('perfis').doc(id).update({ senha: await hashSenha(input) });
+    if (document.getElementById('cb-lembrar').checked) {
+      sessionStorage.setItem(`auth_${id}`, '1');
     }
-    return false;
+    fecharModal('modal-senha');
+    abrirPerfil(id, nome);
+    return true;
   };
 }
 
@@ -189,6 +227,12 @@ function voltarPerfis() {
 }
 
 function renderCarrinhas(carrinhas) {
+  _todasCarrinhas = carrinhas;
+  atualizarFiltroMarcas(carrinhas);
+  aplicarFiltros();
+}
+
+function renderCarrinhasInterno(carrinhas) {
   const emUso = carrinhas.filter(c => c.carga && c.carga !== 'Vazio').length;
   const tipos = { '🚐': 0, '🚗': 0, '🏍️': 0, '⛵': 0 };
   carrinhas.forEach(c => {
@@ -207,6 +251,12 @@ function renderCarrinhas(carrinhas) {
     return;
   }
   empty.style.display = 'none';
+
+  // Atualizar botão de toggle
+  const btn = document.getElementById('btn-view-toggle');
+  if (btn) btn.textContent = viewMode === 'cards' ? '⊞' : '☰';
+
+  if (viewMode === 'table') { renderTabela(carrinhas, grid); return; }
 
   // Ordenar por campo `ordem`, depois por matrícula
   carrinhas.sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999) || (a.matricula || '').localeCompare(b.matricula || ''));
@@ -236,7 +286,12 @@ function renderCarrinhas(carrinhas) {
         : `<span class="carrinha-img-plus" onclick="abrirImgModal('${c.id}','')">+</span>`}
     </div>
     <div class="carrinha-matricula">
-      <span class="carrinha-tipo-icon">${c.tipoVeiculo === 'Carro' ? '🚗' : c.tipoVeiculo === 'Mota' ? '🏍️' : c.tipoVeiculo === 'Barco' ? '⛵' : '🚐'}</span>
+      <select class="select-tipo-veiculo" onchange="updateCarrinha('${c.id}','tipoVeiculo',this.value)">
+        <option value="Carrinha" ${(c.tipoVeiculo||'Carrinha')==='Carrinha'?'selected':''}>🚐</option>
+        <option value="Carro"    ${c.tipoVeiculo==='Carro'?'selected':''}>🚗</option>
+        <option value="Mota"     ${c.tipoVeiculo==='Mota'?'selected':''}>🏍️</option>
+        <option value="Barco"    ${c.tipoVeiculo==='Barco'?'selected':''}>⛵</option>
+      </select>
       <span class="carrinha-matricula-text" onclick="editarCampoCard(event,'${c.id}','matricula','${esc(c.matricula || '')}')">${esc(c.matricula || '—')}</span>
     </div>
     <div class="carrinha-marca-inline" onclick="editarCampoCard(event,'${c.id}','marca','${esc(c.marca || '')}')">
@@ -258,16 +313,19 @@ function renderCarrinhas(carrinhas) {
       <div class="carrinha-card-add-inner">+</div>
     </div>`;
 
-  grid.innerHTML = marcasOrdenadas.map((marca, idx) => `
-    <div class="marca-grupo" data-marca="${esc(marca)}">
+  grid.innerHTML = marcasOrdenadas.map((marca) => `
+    <div class="marca-grupo" data-marca="${esc(marca)}"
+      draggable="true"
+      ondragstart="dragMarcaStart(event)"
+      ondragover="dragMarcaOver(event)"
+      ondragleave="dragMarcaLeave(event)"
+      ondrop="dragMarcaDrop(event)"
+      ondragend="dragMarcaEnd(event)">
       <div class="marca-header" onclick="toggleMarca(this)">
+        <span class="marca-drag-handle" title="Arrastar para reordenar">⠿</span>
         <span class="marca-chevron">▾</span>
         <span class="marca-nome">${esc(marca)}</span>
         <span class="marca-count">${grupos[marca].length} carrinha${grupos[marca].length !== 1 ? 's' : ''}</span>
-        <div class="marca-ordem-btns" onclick="event.stopPropagation()">
-          ${idx > 0 ? `<button class="marca-ordem-btn" onclick="moverMarca('${esc(marca)}',-1)" title="Mover para cima">▲</button>` : '<span class="marca-ordem-btn-vazio"></span>'}
-          ${idx < marcasOrdenadas.length - 1 ? `<button class="marca-ordem-btn" onclick="moverMarca('${esc(marca)}',1)" title="Mover para baixo">▼</button>` : '<span class="marca-ordem-btn-vazio"></span>'}
-        </div>
       </div>
       <div class="marca-cards">
         ${grupos[marca].map(carrinhaCard).join('')}
@@ -277,6 +335,55 @@ function renderCarrinhas(carrinhas) {
   `).join('');
 
   grid.querySelectorAll('.carrinha-input').forEach(el => autoResize(el));
+}
+
+function renderTabela(carrinhas, grid) {
+  carrinhas.sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999));
+
+  grid.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Img</th>
+            <th>Tipo</th>
+            <th>Marca</th>
+            <th>Matrícula</th>
+            <th>Carga</th>
+            <th>Status</th>
+            <th>Estado</th>
+            <th>Notas</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${carrinhas.map(c => `
+            <tr draggable="true" data-id="${c.id}"
+              ondragstart="dragRowStart(event)"
+              ondragover="dragRowOver(event)"
+              ondragleave="dragRowLeave(event)"
+              ondrop="dragRowDrop(event)"
+              ondragend="dragRowEnd(event)">
+              <td class="td-img td-drag-handle">⠿</td>
+              <td class="td-img">
+                ${c.imagem
+                  ? `<img class="td-thumb" src="${esc(c.imagem)}" onclick="abrirLightbox('${esc(c.imagem)}')" />`
+                  : `<button class="btn-add-img" onclick="abrirImgModal('${c.id}','')">+</button>`}
+              </td>
+              <td style="font-size:16px;">${c.tipoVeiculo === 'Carro' ? '🚗' : c.tipoVeiculo === 'Mota' ? '🏍️' : c.tipoVeiculo === 'Barco' ? '⛵' : '🚐'}</td>
+              <td class="td-marca-edit"><span onclick="editarCampoCard(event,'${c.id}','marca','${esc(c.marca || '')}')">${esc(c.marca || '—')}</span></td>
+              <td class="td-matricula"><span onclick="editarCampoCard(event,'${c.id}','matricula','${esc(c.matricula || '')}')">${esc(c.matricula || '—')}</span></td>
+              <td>${selectInline(c.id, 'carga', c.carga, CARGA_OPTS, 'badge-carga', CARGA_CLASS)}</td>
+              <td>${selectInline(c.id, 'status', c.status, STATUS_OPTS, 'badge-status', STATUS_CLASS)}</td>
+              <td><input class="input-inline" value="${esc(c.estado || '')}" placeholder="—" onchange="updateCarrinha('${c.id}','estado',this.value)" /></td>
+              <td><input class="input-inline" value="${esc(c.notas || '')}" placeholder="—" onchange="updateCarrinha('${c.id}','notas',this.value)" /></td>
+              <td><button class="btn-del" onclick="eliminarCarrinha('${c.id}')">×</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>`;
 }
 
 function selectInline(id, field, value, opts, badgeClass, classMap) {
@@ -324,7 +431,7 @@ async function updateCarrinha(id, field, value) {
 }
 
 async function eliminarCarrinha(id) {
-  if (!confirm('Remover este veículo?')) return;
+  if (!(await confirmar('Remover este veículo?', 'Remover'))) return;
   await db.collection('perfis').doc(perfilAtual).collection('carrinhas').doc(id).delete();
   toast('Removido.');
 }
@@ -341,7 +448,7 @@ function abrirImgPerfil(id) {
   setTimeout(() => document.getElementById('m-senha-input').focus(), 100);
   _senhaCallback = async (input) => {
     const snap = await db.collection('perfis').doc(id).get();
-    if (snap.data().senha !== input) return false;
+    if (!(await verificarSenha(input, snap.data().senha))) return false;
     fecharModal('modal-senha');
     _imgPerfilId = id;
     _imgCarrinhaId = null;
@@ -500,6 +607,115 @@ function abrirModalCarrinhaMarca(marca) {
 
 window.abrirModalCarrinhaMarca = abrirModalCarrinhaMarca;
 
+// ─── DRAG & DROP TABELA ───────────────────────────────
+
+let _dragRowId = null;
+
+function dragRowStart(e) {
+  _dragRowId = e.currentTarget.dataset.id;
+  e.currentTarget.classList.add('row-dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.stopPropagation();
+}
+
+function dragRowOver(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const tr = e.currentTarget;
+  if (tr.dataset.id !== _dragRowId) tr.classList.add('row-drag-over');
+}
+
+function dragRowLeave(e) {
+  e.currentTarget.classList.remove('row-drag-over');
+}
+
+function dragRowEnd(e) {
+  document.querySelectorAll('tr[data-id]').forEach(tr => tr.classList.remove('row-dragging', 'row-drag-over'));
+}
+
+async function dragRowDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const target = e.currentTarget;
+  target.classList.remove('row-drag-over');
+  if (!_dragRowId || target.dataset.id === _dragRowId) return;
+
+  const tbody = target.closest('tbody');
+  const rows = [...tbody.querySelectorAll('tr[data-id]')];
+  const dragEl = tbody.querySelector(`tr[data-id="${_dragRowId}"]`);
+  const dragIdx = rows.indexOf(dragEl);
+  const targetIdx = rows.indexOf(target);
+
+  if (dragIdx < targetIdx) target.after(dragEl);
+  else target.before(dragEl);
+
+  // Guardar nova ordem
+  const novaOrdem = [...tbody.querySelectorAll('tr[data-id]')];
+  await Promise.all(novaOrdem.map((tr, i) =>
+    db.collection('perfis').doc(perfilAtual).collection('carrinhas').doc(tr.dataset.id).update({ ordem: i })
+  ));
+}
+
+window.dragRowStart = dragRowStart;
+window.dragRowOver  = dragRowOver;
+window.dragRowLeave = dragRowLeave;
+window.dragRowEnd   = dragRowEnd;
+window.dragRowDrop  = dragRowDrop;
+
+// ─── DRAG & DROP GRUPOS ───────────────────────────────
+
+let _dragMarca = null;
+
+function dragMarcaStart(e) {
+  _dragMarca = e.currentTarget.dataset.marca;
+  e.currentTarget.classList.add('marca-dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.stopPropagation();
+}
+
+function dragMarcaOver(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const target = e.currentTarget;
+  if (target.dataset.marca !== _dragMarca) target.classList.add('marca-drag-over');
+}
+
+function dragMarcaLeave(e) {
+  e.currentTarget.classList.remove('marca-drag-over');
+}
+
+function dragMarcaEnd(e) {
+  document.querySelectorAll('.marca-grupo').forEach(el => el.classList.remove('marca-dragging', 'marca-drag-over'));
+}
+
+function dragMarcaDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const target = e.currentTarget;
+  target.classList.remove('marca-drag-over');
+  if (!_dragMarca || target.dataset.marca === _dragMarca) return;
+
+  const grid = document.getElementById('carrinhas-grid');
+  const dragEl = grid.querySelector(`.marca-grupo[data-marca="${_dragMarca}"]`);
+  const targetEl = target;
+  const grupos = [...grid.querySelectorAll('.marca-grupo')];
+  const dragIdx = grupos.indexOf(dragEl);
+  const targetIdx = grupos.indexOf(targetEl);
+
+  if (dragIdx < targetIdx) targetEl.after(dragEl);
+  else targetEl.before(dragEl);
+
+  // Guardar nova ordem
+  const novaOrdem = [...grid.querySelectorAll('.marca-grupo')].map(el => el.dataset.marca);
+  saveMarcaOrdem(novaOrdem);
+}
+
+window.dragMarcaStart = dragMarcaStart;
+window.dragMarcaOver  = dragMarcaOver;
+window.dragMarcaLeave = dragMarcaLeave;
+window.dragMarcaEnd   = dragMarcaEnd;
+window.dragMarcaDrop  = dragMarcaDrop;
+
 function getMarcaOrdem(marcas) {
   const key = `marcaOrdem_${perfilAtual}`;
   const saved = JSON.parse(localStorage.getItem(key) || '[]');
@@ -590,21 +806,64 @@ function mostrarSync(msg, sucesso = false) {
 }
 window.mostrarSync = mostrarSync;
 
-// ─── PESQUISA ─────────────────────────────────────────
+// ─── PESQUISA & FILTROS ───────────────────────────────
 
-function filtrarCarrinhas(query) {
-  const q = query.toLowerCase();
-  document.querySelectorAll('.marca-grupo').forEach(grupo => {
-    let visiveis = 0;
-    grupo.querySelectorAll('.carrinha-card[data-id]').forEach(card => {
-      const mat = (card.querySelector('.carrinha-matricula-text')?.textContent || '').toLowerCase();
-      const show = !q || mat.includes(q);
-      card.style.display = show ? '' : 'none';
-      if (show) visiveis++;
-    });
-    grupo.style.display = visiveis === 0 && q ? 'none' : '';
-  });
+let _todasCarrinhas = [];
+
+function atualizarFiltroMarcas(carrinhas) {
+  const sel = document.getElementById('filtro-marca');
+  if (!sel) return;
+  const atual = sel.value;
+  const marcas = [...new Set(carrinhas.map(c => c.marca?.trim() || '—'))].sort();
+  sel.innerHTML = '<option value="">Todas as marcas</option>' +
+    marcas.map(m => `<option value="${esc(m)}" ${atual === m ? 'selected' : ''}>${esc(m)}</option>`).join('');
 }
+
+function getFiltros() {
+  return {
+    pesquisa: (document.getElementById('search-carrinhas')?.value || '').toLowerCase(),
+    marca:    document.getElementById('filtro-marca')?.value || '',
+    tipo:     document.getElementById('filtro-tipo')?.value || '',
+    carga:    document.getElementById('filtro-carga')?.value || '',
+    status:   document.getElementById('filtro-status')?.value || '',
+  };
+}
+
+function temFiltrosAtivos(f) {
+  return f.pesquisa || f.marca || f.tipo || f.carga || f.status;
+}
+
+function aplicarFiltros() {
+  const f = getFiltros();
+  const btn = document.getElementById('filtro-limpar');
+  if (btn) btn.style.display = temFiltrosAtivos(f) ? '' : 'none';
+
+  const filtradas = _todasCarrinhas.filter(c => {
+    if (f.pesquisa && !(c.matricula || '').toLowerCase().includes(f.pesquisa)) return false;
+    if (f.marca && (c.marca?.trim() || '—') !== f.marca) return false;
+    if (f.tipo && (c.tipoVeiculo || 'Carrinha') !== f.tipo) return false;
+    if (f.carga && (c.carga || '') !== f.carga) return false;
+    if (f.status && (c.status || '') !== f.status) return false;
+    return true;
+  });
+
+  renderCarrinhasInterno(filtradas);
+}
+
+function limparFiltros() {
+  document.getElementById('search-carrinhas').value = '';
+  document.getElementById('filtro-marca').value = '';
+  document.getElementById('filtro-tipo').value = '';
+  document.getElementById('filtro-carga').value = '';
+  document.getElementById('filtro-status').value = '';
+  document.getElementById('filtro-limpar').style.display = 'none';
+  renderCarrinhasInterno(_todasCarrinhas);
+}
+
+function filtrarCarrinhas(query) { aplicarFiltros(); }
+
+window.aplicarFiltros = aplicarFiltros;
+window.limparFiltros  = limparFiltros;
 window.filtrarCarrinhas = filtrarCarrinhas;
 
 // ─── EDITAR CAMPO INLINE ──────────────────────────────
@@ -639,7 +898,7 @@ function abrirEditarPerfil(id, nome) {
   setTimeout(() => document.getElementById('m-senha-input').focus(), 100);
   _senhaCallback = async (input) => {
     const snap = await db.collection('perfis').doc(id).get();
-    if (snap.data().senha !== input) return false;
+    if (!(await verificarSenha(input, snap.data().senha))) return false;
     fecharModal('modal-senha');
     _editarPerfilId = id;
     document.getElementById('ep-nome').value = snap.data().nome;
@@ -652,10 +911,10 @@ function abrirEditarPerfil(id, nome) {
 
 async function guardarEdicaoPerfil() {
   const nome = document.getElementById('ep-nome').value.trim();
-  const senha = document.getElementById('ep-senha').value;
+  const senhaRaw = document.getElementById('ep-senha').value;
   if (!nome) { toast('Indica um nome.'); return; }
   const dados = { nome };
-  if (senha) dados.senha = senha;
+  if (senhaRaw) dados.senha = await hashSenha(senhaRaw);
   await db.collection('perfis').doc(_editarPerfilId).update(dados);
   fecharModal('modal-editar-perfil');
   toast('Perfil atualizado.');
@@ -771,6 +1030,26 @@ function toast(msg) {
   clearTimeout(el._t);
   el._t = setTimeout(() => el.classList.remove('show'), 2000);
 }
+
+// ─── MODAL DE CONFIRMAÇÃO ─────────────────────────────
+
+let _confirmResolve = null;
+let _confirmReject  = null;
+
+function confirmar(msg, btnLabel = 'Confirmar', danger = true) {
+  return new Promise(resolve => {
+    document.getElementById('confirm-msg').textContent = msg;
+    const btn = document.getElementById('confirm-ok-btn');
+    btn.textContent = btnLabel;
+    btn.className = danger ? 'btn-confirm-danger' : 'btn-confirm-ok';
+    document.getElementById('modal-confirm').classList.add('open');
+    _confirmResolve = () => { document.getElementById('modal-confirm').classList.remove('open'); resolve(true); };
+    _confirmReject  = () => { document.getElementById('modal-confirm').classList.remove('open'); resolve(false); };
+  });
+}
+
+window._confirmResolve = () => _confirmResolve && _confirmResolve();
+window._confirmReject  = () => _confirmReject  && _confirmReject();
 
 function autoResize(el) {
   el.style.height = 'auto';
@@ -892,14 +1171,25 @@ function calcTab(tab) {
 }
 
 function calcDrogas() {
-  const droga = DROGAS[document.getElementById('c-droga').value];
+  const key = document.getElementById('c-droga').value;
+  const droga = DROGAS[key];
   const qtd = Math.max(1, parseInt(document.getElementById('c-qtd').value) || 1);
-  const tipo = document.getElementById('c-tipo').value;
-  const preco = droga[tipo];
-  const total = preco * qtd;
-  const tipoLabel = { civil: 'Civil', limpo: 'Contratado Limpo', sujo: 'Contratado Sujo' }[tipo];
-  document.getElementById('calc-droga-total').textContent = fmt(total);
-  document.getElementById('calc-droga-detail').textContent = `${fmt(preco)} × ${qtd} unidade${qtd !== 1 ? 's' : ''} — ${tipoLabel}`;
+  const carMult = key === 'petroleo' ? 240 : 600;
+
+  const th = document.getElementById('calc-droga-th-qtd');
+  if (th) th.textContent = `(${qtd}×)`;
+  const thCar = document.getElementById('calc-droga-th-car');
+  if (thCar) thCar.textContent = `Carrinha (${carMult}×)`;
+
+  document.getElementById('cd-unit-sujo').textContent  = fmt(droga.sujo);
+  document.getElementById('cd-total-sujo').textContent = fmt(droga.sujo * qtd);
+  document.getElementById('cd-car-sujo').textContent   = fmt(droga.sujo * carMult);
+  document.getElementById('cd-unit-limpo').textContent  = fmt(droga.limpo);
+  document.getElementById('cd-total-limpo').textContent = fmt(droga.limpo * qtd);
+  document.getElementById('cd-car-limpo').textContent   = fmt(droga.limpo * carMult);
+  document.getElementById('cd-unit-civil').textContent  = fmt(droga.civil);
+  document.getElementById('cd-total-civil').textContent = fmt(droga.civil * qtd);
+  document.getElementById('cd-car-civil').textContent   = fmt(droga.civil * carMult);
   salvarEstadoCalc();
 }
 
@@ -910,29 +1200,33 @@ function multiplicarMateriais(materiaisStr, qtd) {
 
 function calcArmas() {
   const arma = ARMAS[document.getElementById('c-arma').value];
-  const tipo = document.getElementById('c-arma-tipo').value;
   const qtd = Math.max(1, parseInt(document.getElementById('c-arma-qtd').value) || 1);
-  const preco = arma[tipo];
-  const total = preco * qtd;
-  const tipoLabel = { civil: 'Civil', com_mat: 'Contratado com Materiais', sem_mat: 'Contratado sem Materiais' }[tipo];
-  document.getElementById('calc-arma-total').textContent = fmt(total);
-  let detalhe = `${fmt(preco)} × ${qtd} unidade${qtd !== 1 ? 's' : ''} — ${tipoLabel}`;
-  if (tipo === 'com_mat') detalhe += `\nMateriais necessários: ${multiplicarMateriais(arma.materiais, qtd)}`;
-  document.getElementById('calc-arma-detail').textContent = detalhe;
+  const th = document.getElementById('calc-arma-th-qtd');
+  if (th) th.textContent = `(${qtd}×)`;
+  document.getElementById('ca-unit-civil').textContent  = fmt(arma.civil);
+  document.getElementById('ca-total-civil').textContent = fmt(arma.civil * qtd);
+  document.getElementById('ca-unit-com').textContent    = fmt(arma.com_mat);
+  document.getElementById('ca-total-com').textContent   = fmt(arma.com_mat * qtd);
+  document.getElementById('ca-unit-sem').textContent    = fmt(arma.sem_mat);
+  document.getElementById('ca-total-sem').textContent   = fmt(arma.sem_mat * qtd);
+  const mat = document.getElementById('ca-materiais');
+  if (mat) mat.textContent = `Materiais (com materiais): ${multiplicarMateriais(arma.materiais, qtd)}`;
   salvarEstadoCalc();
 }
 
 function calcAcessorios() {
   const ac = ACESSORIOS[document.getElementById('c-acessorio').value];
-  const tipo = document.getElementById('c-acessorio-tipo').value;
   const qtd = Math.max(1, parseInt(document.getElementById('c-acessorio-qtd').value) || 1);
-  const preco = ac[tipo];
-  const total = preco * qtd;
-  const tipoLabel = { civil: 'Civil', com_mat: 'Contratado com Materiais', sem_mat: 'Contratado sem Materiais' }[tipo];
-  document.getElementById('calc-acessorio-total').textContent = fmt(total);
-  let detalhe = `${fmt(preco)} × ${qtd} unidade${qtd !== 1 ? 's' : ''} — ${tipoLabel}`;
-  if (tipo === 'com_mat') detalhe += `\nMateriais necessários: ${multiplicarMateriais(ac.materiais, qtd)}`;
-  document.getElementById('calc-acessorio-detail').textContent = detalhe;
+  const th = document.getElementById('calc-ac-th-qtd');
+  if (th) th.textContent = `(${qtd}×)`;
+  document.getElementById('ac-unit-civil').textContent  = fmt(ac.civil);
+  document.getElementById('ac-total-civil').textContent = fmt(ac.civil * qtd);
+  document.getElementById('ac-unit-com').textContent    = fmt(ac.com_mat);
+  document.getElementById('ac-total-com').textContent   = fmt(ac.com_mat * qtd);
+  document.getElementById('ac-unit-sem').textContent    = fmt(ac.sem_mat);
+  document.getElementById('ac-total-sem').textContent   = fmt(ac.sem_mat * qtd);
+  const mat = document.getElementById('ac-materiais');
+  if (mat) mat.textContent = `Materiais (com materiais): ${multiplicarMateriais(ac.materiais, qtd)}`;
   salvarEstadoCalc();
 }
 

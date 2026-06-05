@@ -30,7 +30,7 @@
       <label>Palavra-passe</label>
       <input id="m-senha-input" type="password" placeholder="Introduz a palavra-passe..." />
     </div>
-    <p class="senha-erro" id="senha-erro" style="display:none;">Palavra-passe incorreta.</p>
+    <p class="senha-erro" id="senha-erro" style="display:none;">Palavra-passe errada.</p>
     <div class="modal-actions">
       <button class="btn-ghost" onclick="fecharModal('modal-senha')">Cancelar</button>
       <button class="btn-primary" onclick="confirmarSenha()">Entrar</button>
@@ -57,7 +57,7 @@
     </div>
     <div class="field">
       <label>Matrícula</label>
-      <input id="m-matricula" type="text" placeholder="ex: FI7 9VI" />
+      <input id="m-matricula" type="text" placeholder="ex: LL1 1LL" />
     </div>
     <div class="field">
       <label>Tipo de Carga</label>
@@ -87,7 +87,7 @@
     </div>
     <div class="field">
       <label>Estado</label>
-      <input id="m-estado" type="text" placeholder="ex: Cheio, 249..." />
+      <input id="m-estado" type="text" placeholder="ex: Cheio, Vazio..." />
     </div>
     <div class="field">
       <label>Notas</label>
@@ -112,7 +112,7 @@
       </div>
     </div>
     <div class="img-opcoes">
-      <button class="btn-ghost" onclick="document.getElementById('img-file-input').click()">📁 Procurar ficheiro</button>
+      <button class="btn-ghost" onclick="document.getElementById('img-file-input').click()">Procurar ficheiro</button>
       <input id="img-file-input" type="file" accept="image/*" style="display:none;" onchange="carregarFicheiro(this)" />
     </div>
     <div class="field" style="margin-top:12px;">
