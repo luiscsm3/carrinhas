@@ -81,7 +81,10 @@ function renderPerfis(perfis) {
         <div class="perfil-avatar-overlay">✎</div>
       </div>
       <div class="perfil-nome">${esc(p.nome)} <span class="perfil-lock">🔒</span></div>
-      <div class="perfil-info" id="info-${p.id}">— carrinhas</div>
+      <div class="perfil-card-footer">
+        <div class="perfil-info" id="info-${p.id}">— carrinhas</div>
+        <button class="perfil-senha-btn" onclick="event.stopPropagation(); abrirEditarPerfil('${p.id}','${esc(p.nome)}')" title="Alterar palavra-passe">🔑</button>
+      </div>
     </div>
   `).join('');
 
@@ -187,7 +190,13 @@ function voltarPerfis() {
 
 function renderCarrinhas(carrinhas) {
   const emUso = carrinhas.filter(c => c.carga && c.carga !== 'Vazio').length;
-  document.getElementById('perfil-contador').textContent = `${emUso} / ${carrinhas.length} carrinhas em uso`;
+  const tipos = { '🚐': 0, '🚗': 0, '🏍️': 0, '⛵': 0 };
+  carrinhas.forEach(c => {
+    const icon = c.tipoVeiculo === 'Carro' ? '🚗' : c.tipoVeiculo === 'Mota' ? '🏍️' : c.tipoVeiculo === 'Barco' ? '⛵' : '🚐';
+    tipos[icon]++;
+  });
+  const tiposStr = Object.entries(tipos).filter(([,v]) => v > 0).map(([k,v]) => `${v}${k}`).join(' ');
+  document.getElementById('perfil-contador').textContent = `${emUso} / ${carrinhas.length} em uso  •  ${tiposStr}`;
 
   const grid = document.getElementById('carrinhas-grid');
   const empty = document.getElementById('carrinhas-empty');
@@ -199,6 +208,9 @@ function renderCarrinhas(carrinhas) {
   }
   empty.style.display = 'none';
 
+  // Ordenar por campo `ordem`, depois por matrícula
+  carrinhas.sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999) || (a.matricula || '').localeCompare(b.matricula || ''));
+
   // Agrupar por marca
   const grupos = {};
   carrinhas.forEach(c => {
@@ -207,18 +219,28 @@ function renderCarrinhas(carrinhas) {
     grupos[marca].push(c);
   });
 
-  const marcasOrdenadas = Object.keys(grupos).sort((a, b) => a === '—' ? 1 : b === '—' ? -1 : a.localeCompare(b));
+  const marcasBruto = Object.keys(grupos).sort((a, b) => a === '—' ? 1 : b === '—' ? -1 : a.localeCompare(b));
+  const marcasOrdenadas = getMarcaOrdem(marcasBruto);
 
-  const carrinhaCard = c => `<div class="carrinha-card">
-    <div class="carrinha-img" onclick="abrirImgModal('${c.id}','${esc(c.imagem || '')}')">
+  const cardBgClass = (carga, status) => {
+    const c = (carga || '').toLowerCase().replace(' ', '-').replace('é','e').replace('ó','o').replace('ã','a');
+    const s = status === 'Processado' ? 'proc' : status === 'Não Processado' ? 'nproc' : 'vazio';
+    return `card-bg-${c} card-st-${s}`;
+  };
+
+  const carrinhaCard = c => `<div class="carrinha-card ${cardBgClass(c.carga, c.status)}" draggable="true" data-id="${c.id}" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dragDrop(event)" ondragend="dragEnd(event)">
+    <div class="carrinha-img">
       ${c.imagem
-        ? `<img src="${esc(c.imagem)}" class="carrinha-img-foto" />`
-        : `<span class="carrinha-img-plus">+</span>`}
-      <div class="perfil-avatar-overlay">✎</div>
+        ? `<img src="${esc(c.imagem)}" class="carrinha-img-foto" onclick="abrirLightbox('${esc(c.imagem)}')" />
+           <button class="carrinha-img-edit" onclick="abrirImgModal('${c.id}','${esc(c.imagem)}')">✎</button>`
+        : `<span class="carrinha-img-plus" onclick="abrirImgModal('${c.id}','')">+</span>`}
     </div>
     <div class="carrinha-matricula">
       <span class="carrinha-tipo-icon">${c.tipoVeiculo === 'Carro' ? '🚗' : c.tipoVeiculo === 'Mota' ? '🏍️' : c.tipoVeiculo === 'Barco' ? '⛵' : '🚐'}</span>
-      ${esc(c.matricula || '—')}
+      <span class="carrinha-matricula-text" onclick="editarCampoCard(event,'${c.id}','matricula','${esc(c.matricula || '')}')">${esc(c.matricula || '—')}</span>
+    </div>
+    <div class="carrinha-marca-inline" onclick="editarCampoCard(event,'${c.id}','marca','${esc(c.marca || '')}')">
+      ${esc(c.marca || '—')}
     </div>
     <div class="carrinha-badges">
       ${selectInline(c.id, 'carga', c.carga, CARGA_OPTS, 'badge-carga', CARGA_CLASS)}
@@ -231,13 +253,26 @@ function renderCarrinhas(carrinhas) {
     <button class="carrinha-btn-del" onclick="eliminarCarrinha('${c.id}')">Remover</button>
   </div>`;
 
-  grid.innerHTML = marcasOrdenadas.map(marca => `
-    <div class="marca-grupo">
-      <div class="marca-header">
+  const addCard = marca => `
+    <div class="carrinha-card carrinha-card-add" onclick="abrirModalCarrinhaMarca('${esc(marca)}')">
+      <div class="carrinha-card-add-inner">+</div>
+    </div>`;
+
+  grid.innerHTML = marcasOrdenadas.map((marca, idx) => `
+    <div class="marca-grupo" data-marca="${esc(marca)}">
+      <div class="marca-header" onclick="toggleMarca(this)">
+        <span class="marca-chevron">▾</span>
         <span class="marca-nome">${esc(marca)}</span>
         <span class="marca-count">${grupos[marca].length} carrinha${grupos[marca].length !== 1 ? 's' : ''}</span>
+        <div class="marca-ordem-btns" onclick="event.stopPropagation()">
+          ${idx > 0 ? `<button class="marca-ordem-btn" onclick="moverMarca('${esc(marca)}',-1)" title="Mover para cima">▲</button>` : '<span class="marca-ordem-btn-vazio"></span>'}
+          ${idx < marcasOrdenadas.length - 1 ? `<button class="marca-ordem-btn" onclick="moverMarca('${esc(marca)}',1)" title="Mover para baixo">▼</button>` : '<span class="marca-ordem-btn-vazio"></span>'}
+        </div>
       </div>
-      <div class="marca-cards">${grupos[marca].map(carrinhaCard).join('')}</div>
+      <div class="marca-cards">
+        ${grupos[marca].map(carrinhaCard).join('')}
+        ${addCard(marca)}
+      </div>
     </div>
   `).join('');
 
@@ -283,12 +318,15 @@ async function adicionarCarrinha() {
 }
 
 async function updateCarrinha(id, field, value) {
+  mostrarSync('A guardar...');
   await db.collection('perfis').doc(perfilAtual).collection('carrinhas').doc(id).update({ [field]: value });
+  mostrarSync('✓ Guardado', true);
 }
 
 async function eliminarCarrinha(id) {
+  if (!confirm('Remover este veículo?')) return;
   await db.collection('perfis').doc(perfilAtual).collection('carrinhas').doc(id).delete();
-  toast('Removida.');
+  toast('Removido.');
 }
 
 // ─── IMAGEM PERFIL ────────────────────────────────────
@@ -449,9 +487,76 @@ function abrirModalPerfil() {
 }
 
 function abrirModalCarrinha() {
+  document.getElementById('m-marca').value = '';
+  document.getElementById('modal-carrinha').classList.add('open');
+  setTimeout(() => document.getElementById('m-marca').focus(), 100);
+}
+
+function abrirModalCarrinhaMarca(marca) {
+  document.getElementById('m-marca').value = marca;
   document.getElementById('modal-carrinha').classList.add('open');
   setTimeout(() => document.getElementById('m-matricula').focus(), 100);
 }
+
+window.abrirModalCarrinhaMarca = abrirModalCarrinhaMarca;
+
+function getMarcaOrdem(marcas) {
+  const key = `marcaOrdem_${perfilAtual}`;
+  const saved = JSON.parse(localStorage.getItem(key) || '[]');
+  // Juntar marcas guardadas com novas que ainda não existem
+  const ordenadas = saved.filter(m => marcas.includes(m));
+  marcas.forEach(m => { if (!ordenadas.includes(m)) ordenadas.push(m); });
+  return ordenadas;
+}
+
+function saveMarcaOrdem(ordem) {
+  localStorage.setItem(`marcaOrdem_${perfilAtual}`, JSON.stringify(ordem));
+}
+
+function moverMarca(marca, dir) {
+  const grupos = [...document.querySelectorAll('.marca-grupo')].map(el => el.dataset.marca);
+  const idx = grupos.indexOf(marca);
+  const novoIdx = idx + dir;
+  if (novoIdx < 0 || novoIdx >= grupos.length) return;
+  // Trocar no array
+  [grupos[idx], grupos[novoIdx]] = [grupos[novoIdx], grupos[idx]];
+  saveMarcaOrdem(grupos);
+  // Mover no DOM diretamente para ser imediato
+  const grid = document.getElementById('carrinhas-grid');
+  const els = [...grid.querySelectorAll('.marca-grupo')];
+  if (dir === -1) {
+    els[novoIdx].before(els[idx]);
+  } else {
+    els[novoIdx].after(els[idx]);
+  }
+  // Atualizar botões ▲▼
+  atualizarBotoesOrdem();
+}
+
+function atualizarBotoesOrdem() {
+  const els = [...document.querySelectorAll('.marca-grupo')];
+  els.forEach((el, idx) => {
+    const btns = el.querySelector('.marca-ordem-btns');
+    if (!btns) return;
+    const marca = el.dataset.marca;
+    btns.innerHTML = `
+      ${idx > 0 ? `<button class="marca-ordem-btn" onclick="moverMarca('${marca}',-1)">▲</button>` : '<span class="marca-ordem-btn-vazio"></span>'}
+      ${idx < els.length - 1 ? `<button class="marca-ordem-btn" onclick="moverMarca('${marca}',1)">▼</button>` : '<span class="marca-ordem-btn-vazio"></span>'}
+    `;
+  });
+}
+
+window.moverMarca = moverMarca;
+
+function toggleMarca(header) {
+  const grupo = header.closest('.marca-grupo');
+  const cards = grupo.querySelector('.marca-cards');
+  const chevron = header.querySelector('.marca-chevron');
+  const collapsed = cards.style.display === 'none';
+  cards.style.display = collapsed ? '' : 'none';
+  chevron.textContent = collapsed ? '▾' : '▸';
+}
+window.toggleMarca = toggleMarca;
 
 function fecharModal(id) {
   document.getElementById(id).classList.remove('open');
@@ -471,6 +576,191 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && document.getElementById('modal-carrinha').classList.contains('open')) adicionarCarrinha();
   if (e.key === 'Enter' && document.getElementById('modal-senha').classList.contains('open')) confirmarSenha();
 });
+
+// ─── SYNC INDICATOR ───────────────────────────────────
+
+let _syncTimer = null;
+function mostrarSync(msg, sucesso = false) {
+  const el = document.getElementById('sync-indicator');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'sync-indicator ' + (sucesso ? 'sync-ok' : 'sync-saving');
+  clearTimeout(_syncTimer);
+  if (sucesso) _syncTimer = setTimeout(() => { el.textContent = ''; el.className = 'sync-indicator'; }, 2000);
+}
+window.mostrarSync = mostrarSync;
+
+// ─── PESQUISA ─────────────────────────────────────────
+
+function filtrarCarrinhas(query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll('.marca-grupo').forEach(grupo => {
+    let visiveis = 0;
+    grupo.querySelectorAll('.carrinha-card[data-id]').forEach(card => {
+      const mat = (card.querySelector('.carrinha-matricula-text')?.textContent || '').toLowerCase();
+      const show = !q || mat.includes(q);
+      card.style.display = show ? '' : 'none';
+      if (show) visiveis++;
+    });
+    grupo.style.display = visiveis === 0 && q ? 'none' : '';
+  });
+}
+window.filtrarCarrinhas = filtrarCarrinhas;
+
+// ─── EDITAR CAMPO INLINE ──────────────────────────────
+
+function editarCampoCard(e, id, field, valorAtual) {
+  e.stopPropagation();
+  const span = e.currentTarget;
+  const input = document.createElement('input');
+  input.className = 'input-inline-edit';
+  input.value = valorAtual;
+  span.replaceWith(input);
+  input.focus();
+  input.select();
+  const salvar = async () => {
+    const novoValor = input.value.trim() || valorAtual;
+    await updateCarrinha(id, field, novoValor);
+  };
+  input.addEventListener('blur', salvar);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = valorAtual; input.blur(); } });
+}
+window.editarCampoCard = editarCampoCard;
+
+// ─── EDITAR PERFIL ────────────────────────────────────
+
+let _editarPerfilId = null;
+
+function abrirEditarPerfil(id, nome) {
+  document.getElementById('modal-senha-desc').textContent = `Confirmar identidade: ${nome}`;
+  document.getElementById('m-senha-input').value = '';
+  document.getElementById('senha-erro').style.display = 'none';
+  document.getElementById('modal-senha').classList.add('open');
+  setTimeout(() => document.getElementById('m-senha-input').focus(), 100);
+  _senhaCallback = async (input) => {
+    const snap = await db.collection('perfis').doc(id).get();
+    if (snap.data().senha !== input) return false;
+    fecharModal('modal-senha');
+    _editarPerfilId = id;
+    document.getElementById('ep-nome').value = snap.data().nome;
+    document.getElementById('ep-senha').value = '';
+    document.getElementById('modal-editar-perfil').classList.add('open');
+    setTimeout(() => document.getElementById('ep-nome').focus(), 100);
+    return true;
+  };
+}
+
+async function guardarEdicaoPerfil() {
+  const nome = document.getElementById('ep-nome').value.trim();
+  const senha = document.getElementById('ep-senha').value;
+  if (!nome) { toast('Indica um nome.'); return; }
+  const dados = { nome };
+  if (senha) dados.senha = senha;
+  await db.collection('perfis').doc(_editarPerfilId).update(dados);
+  fecharModal('modal-editar-perfil');
+  toast('Perfil atualizado.');
+}
+
+window.abrirEditarPerfil = abrirEditarPerfil;
+window.guardarEdicaoPerfil = guardarEdicaoPerfil;
+
+// ─── LIGHTBOX ─────────────────────────────────────────
+
+function abrirLightbox(src) {
+  const lb = document.getElementById('lightbox');
+  document.getElementById('lightbox-img').src = src;
+  lb.style.display = 'flex';
+}
+
+function fecharLightbox() {
+  document.getElementById('lightbox').style.display = 'none';
+}
+
+window.abrirLightbox = abrirLightbox;
+window.fecharLightbox = fecharLightbox;
+
+// ─── EXPORTAR ─────────────────────────────────────────
+
+async function exportarDados() {
+  const snap = await db.collection('perfis').doc(perfilAtual).collection('carrinhas').get();
+  const dados = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  // Remover imagens base64 para não ficar enorme
+  dados.forEach(d => { if (d.imagem?.startsWith('data:')) d.imagem = '[imagem local]'; });
+  const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `carrinhas_${document.getElementById('perfil-nome-titulo').textContent}_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  toast('Exportado!');
+}
+
+window.exportarDados = exportarDados;
+
+// ─── DRAG & DROP ──────────────────────────────────────
+
+let _dragId = null;
+
+function dragStart(e) {
+  _dragId = e.currentTarget.dataset.id;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function dragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const target = e.currentTarget;
+  if (target.dataset.id && target.dataset.id !== _dragId) {
+    target.classList.add('drag-over');
+  }
+}
+
+function dragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function dragEnd(e) {
+  document.querySelectorAll('.carrinha-card').forEach(el => {
+    el.classList.remove('dragging', 'drag-over');
+  });
+}
+
+async function dragDrop(e) {
+  e.preventDefault();
+  const targetId = e.currentTarget.dataset.id;
+  if (!targetId || targetId === _dragId) return;
+  e.currentTarget.classList.remove('drag-over');
+
+  const allGrids = document.querySelectorAll('.marca-cards');
+  const dragEl = document.querySelector(`.carrinha-card[data-id="${_dragId}"]`);
+  const targetEl = e.currentTarget;
+  const targetGrid = targetEl.closest('.marca-cards');
+
+  // Mover para novo grupo se necessário
+  const novaMarca = targetEl.closest('.marca-grupo')?.dataset.marca;
+  if (novaMarca && dragEl.closest('.marca-grupo')?.dataset.marca !== novaMarca) {
+    await updateCarrinha(_dragId, 'marca', novaMarca === '—' ? '' : novaMarca);
+  }
+
+  // Reordenar no DOM
+  const cards = [...targetGrid.querySelectorAll('.carrinha-card[data-id]')];
+  const targetIdx = cards.indexOf(targetEl);
+  const dragIdx = cards.indexOf(dragEl);
+  if (dragIdx === -1 || dragIdx < targetIdx) targetEl.after(dragEl);
+  else targetEl.before(dragEl);
+
+  // Guardar ordem
+  const novosCards = [...targetGrid.querySelectorAll('.carrinha-card[data-id]')];
+  await Promise.all(novosCards.map((el, i) =>
+    db.collection('perfis').doc(perfilAtual).collection('carrinhas').doc(el.dataset.id).update({ ordem: i })
+  ));
+}
+
+window.dragStart  = dragStart;
+window.dragOver   = dragOver;
+window.dragLeave  = dragLeave;
+window.dragEnd    = dragEnd;
+window.dragDrop   = dragDrop;
 
 // ─── UTILS ────────────────────────────────────────────
 

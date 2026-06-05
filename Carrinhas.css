@@ -228,6 +228,109 @@ h1 {
 }
 .perfil-del:hover { color: var(--red); background: var(--red-dim); }
 
+/* ── SEARCH ─────────────────────────────────────────── */
+.search-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 7px 12px;
+  outline: none;
+  width: 180px;
+  transition: border-color .15s, width .2s;
+}
+.search-input:focus { border-color: var(--accent); width: 220px; }
+.search-input::placeholder { color: var(--text-dim); }
+
+/* ── SYNC INDICATOR ─────────────────────────────────── */
+.sync-indicator {
+  font-family: var(--mono);
+  font-size: 11px;
+  height: 20px;
+  margin-bottom: 8px;
+  transition: color .2s;
+}
+.sync-saving { color: var(--text-muted); }
+.sync-ok     { color: var(--accent); }
+
+/* ── EDITAR PERFIL ──────────────────────────────────── */
+.perfil-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+.perfil-senha-btn {
+  background: none; border: none;
+  font-size: 13px; cursor: pointer;
+  padding: 3px 5px; border-radius: 4px;
+  opacity: .4;
+  transition: opacity .15s;
+}
+.perfil-senha-btn:hover { opacity: 1; }
+
+/* ── EDITAR CAMPO INLINE ────────────────────────────── */
+.input-inline-edit {
+  background: var(--surface2);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 6px;
+  outline: none;
+  width: 100%;
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+
+.carrinha-matricula-text { cursor: pointer; }
+.carrinha-matricula-text:hover { text-decoration: underline; text-decoration-style: dashed; }
+
+.carrinha-marca-inline {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  margin-bottom: 8px;
+  cursor: pointer;
+  display: inline-block;
+}
+.carrinha-marca-inline:hover { color: var(--accent); text-decoration: underline dashed; }
+
+/* ── BOTÃO EDITAR IMAGEM ────────────────────────────── */
+.carrinha-img-edit {
+  position: absolute; bottom: 6px; right: 6px;
+  background: rgba(0,0,0,.6);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text-muted); font-size: 12px;
+  padding: 3px 7px; cursor: pointer;
+  transition: color .15s, border-color .15s;
+  opacity: 0;
+  transition: opacity .15s;
+}
+.carrinha-img:hover .carrinha-img-edit { opacity: 1; }
+.carrinha-img-edit:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── LIGHTBOX ────────────────────────────────────────── */
+.lightbox {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.9);
+  backdrop-filter: blur(8px);
+  z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  cursor: zoom-out;
+}
+.lightbox img {
+  max-width: 90vw; max-height: 90vh;
+  object-fit: contain;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 60px rgba(0,0,0,.8);
+}
+
 /* ── CARRINHAS GRID ─────────────────────────────────── */
 .carrinhas-grid {
   display: flex;
@@ -244,7 +347,40 @@ h1 {
   margin-bottom: 12px;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
 }
+.marca-header:hover .marca-nome { color: var(--text); }
+
+.marca-ordem-btns {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.marca-ordem-btn {
+  background: transparent;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 10px;
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+  line-height: 1;
+}
+.marca-ordem-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.marca-ordem-btn-vazio { width: 22px; height: 22px; display: inline-block; }
+
+.marca-chevron {
+  font-size: 13px;
+  color: var(--text-muted);
+  transition: color .15s;
+  flex-shrink: 0;
+}
+.marca-header:hover .marca-chevron { color: var(--accent); }
 
 .marca-nome {
   font-size: 13px;
@@ -254,6 +390,74 @@ h1 {
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
+
+/* ── CORES DOS CARDS POR CARGA ──────────────────────── */
+
+/* Base por carga */
+.card-bg-petroleo   { --card-clr: #4ade80; --card-bg: #0a1a0a; }
+.card-bg-opio       { --card-clr: #818cf8; --card-bg: #0c0b1e; }
+.card-bg-metafetamina { --card-clr: #e879f9; --card-bg: #1a0b1e; }
+.card-bg-cocaina    { --card-clr: #fbbf24; --card-bg: #1c1a0a; }
+.card-bg-materiais  { --card-clr: #f87171; --card-bg: #1c0a0a; }
+.card-bg-armas      { --card-clr: #60a5fa; --card-bg: #0a1020; }
+.card-bg-dinheiro-sujo { --card-clr: #34d399; --card-bg: #0a1c12; }
+.card-bg-erva       { --card-clr: #86efac; --card-bg: #0a1c0e; }
+.card-bg-caixas     { --card-clr: #fcd34d; --card-bg: #1c180a; }
+.card-bg-cenas-random { --card-clr: #f9a8d4; --card-bg: #1c0a18; }
+.card-bg-vazio,
+.card-bg-           { --card-clr: var(--text-dim); --card-bg: var(--surface); }
+
+/* Aplicar fundo base */
+.carrinha-card[class*="card-bg-"] {
+  background: var(--card-bg, var(--surface));
+  border-color: var(--border);
+}
+
+/* Modificadores de status */
+.card-st-proc  { border-left: 3px solid var(--card-clr, var(--accent)); }
+.card-st-nproc { border-left: 3px solid var(--yellow); filter: brightness(1.08); }
+.card-st-vazio { border-left: 3px solid var(--border2); }
+
+/* Hover mantém a cor base mas mais viva */
+.carrinha-card[class*="card-bg-"]:hover {
+  border-color: var(--card-clr, var(--accent));
+  box-shadow: 0 0 0 1px var(--card-clr, var(--accent));
+}
+
+.carrinha-card.dragging {
+  opacity: .4;
+  cursor: grabbing;
+}
+
+.carrinha-card.drag-over {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent), 0 0 16px var(--accent-glow);
+}
+
+.carrinha-card[draggable="true"] { cursor: grab; }
+
+.carrinha-card-add {
+  border: 1px dashed var(--border2);
+  background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  min-height: 120px;
+  box-shadow: none;
+  transition: border-color .2s, background .2s;
+}
+.carrinha-card-add:hover {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  box-shadow: none;
+  transform: none;
+}
+.carrinha-card-add-inner {
+  font-size: 28px;
+  color: var(--text-dim);
+  line-height: 1;
+  transition: color .15s;
+}
+.carrinha-card-add:hover .carrinha-card-add-inner { color: var(--accent); }
 
 .marca-count {
   font-size: 11px;

@@ -42,11 +42,14 @@
     </div>
     <div class="header-actions">
       <button class="btn-theme" id="btn-theme-carrinhas" onclick="toggleTheme()">🌙 Escuro</button>
-      <button class="btn-ghost" onclick="abrirCalculadora()">Calculadora</button>
-      <button class="btn-primary" onclick="abrirModalCarrinha()">+ Adicionar carrinha</button>
+      <input class="search-input" id="search-carrinhas" type="text" placeholder="🔍 Pesquisar matrícula..." oninput="filtrarCarrinhas(this.value)" />
+      <button class="btn-ghost" onclick="exportarDados()">⬇ Exportar</button>
+      <button class="btn-ghost" onclick="abrirCalculadora()">🧮 Calculadora</button>
+      <button class="btn-primary" onclick="abrirModalCarrinha()">+ Adicionar veículo</button>
     </div>
   </header>
 
+  <div id="sync-indicator" class="sync-indicator"></div>
   <div id="carrinhas-grid" class="carrinhas-grid"></div>
   <div id="carrinhas-empty" class="empty-state" style="display:none;">
     <div class="empty-icon"><img src="35.png" style="width:64px;height:64px;object-fit:contain;" /></div>
@@ -310,6 +313,30 @@
       <button class="btn-primary" onclick="guardarImagem()">Guardar</button>
     </div>
   </div>
+</div>
+
+<!-- Modal: Editar Perfil -->
+<div class="modal-overlay" id="modal-editar-perfil" onclick="if(event.target===this)fecharModal('modal-editar-perfil')">
+  <div class="modal">
+    <h3>✏️ Editar Perfil</h3>
+    <div class="field">
+      <label>Nome</label>
+      <input id="ep-nome" type="text" placeholder="Nome do perfil" />
+    </div>
+    <div class="field">
+      <label>Nova palavra-passe</label>
+      <input id="ep-senha" type="password" placeholder="Deixar vazio = manter atual" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="fecharModal('modal-editar-perfil')">Cancelar</button>
+      <button class="btn-primary" onclick="guardarEdicaoPerfil()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" class="lightbox" onclick="fecharLightbox()" style="display:none;">
+  <img id="lightbox-img" src="" />
 </div>
 
 <div class="toast" id="toast"></div>
