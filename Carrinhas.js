@@ -74,7 +74,12 @@ function renderPerfis(perfis) {
   grid.innerHTML = perfis.map(p => `
     <div class="perfil-card" onclick="tentarAbrirPerfil('${p.id}','${esc(p.nome)}')">
       <button class="perfil-del" onclick="event.stopPropagation(); eliminarPerfil('${p.id}','${esc(p.nome)}')" title="Eliminar">×</button>
-      <div class="perfil-avatar">${p.nome.charAt(0).toUpperCase()}</div>
+      <div class="perfil-avatar" onclick="event.stopPropagation(); abrirImgPerfil('${p.id}')">
+        ${p.foto
+          ? `<img src="${esc(p.foto)}" class="perfil-avatar-img" />`
+          : `<span>${p.nome.charAt(0).toUpperCase()}</span>`}
+        <div class="perfil-avatar-overlay">✎</div>
+      </div>
       <div class="perfil-nome">${esc(p.nome)} <span class="perfil-lock">🔒</span></div>
       <div class="perfil-info" id="info-${p.id}">— carrinhas</div>
     </div>
@@ -250,6 +255,38 @@ async function eliminarCarrinha(id) {
   toast('Removida.');
 }
 
+// ─── IMAGEM PERFIL ────────────────────────────────────
+
+let _imgPerfilId = null;
+
+function abrirImgPerfil(id) {
+  document.getElementById('modal-senha-desc').textContent = 'Confirmar identidade para editar foto';
+  document.getElementById('m-senha-input').value = '';
+  document.getElementById('senha-erro').style.display = 'none';
+  document.getElementById('modal-senha').classList.add('open');
+  setTimeout(() => document.getElementById('m-senha-input').focus(), 100);
+  _senhaCallback = async (input) => {
+    const snap = await db.collection('perfis').doc(id).get();
+    if (snap.data().senha !== input) return false;
+    fecharModal('modal-senha');
+    _imgPerfilId = id;
+    _imgCarrinhaId = null;
+    document.getElementById('m-img-url').value = '';
+    document.getElementById('img-preview').src = '';
+    document.getElementById('img-preview').style.display = 'none';
+    document.getElementById('img-paste-hint').style.display = '';
+    document.getElementById('modal-img-titulo').textContent = '📷 Foto do Perfil';
+    document.getElementById('modal-img').classList.add('open');
+    setTimeout(() => document.getElementById('img-paste-zone').focus(), 100);
+    return true;
+  };
+}
+
+async function guardarFotoPerfil(src) {
+  await db.collection('perfis').doc(_imgPerfilId).update({ foto: src });
+  toast('Foto atualizada.');
+}
+
 // ─── IMAGEM ───────────────────────────────────────────
 
 let _imgCarrinhaId = null;
@@ -257,6 +294,8 @@ let _imgDataAtual = '';
 
 function abrirImgModal(id, urlAtual) {
   _imgCarrinhaId = id;
+  _imgPerfilId = null;
+  document.getElementById('modal-img-titulo').textContent = '📷 Imagem';
   _imgDataAtual = urlAtual;
   document.getElementById('m-img-url').value = urlAtual.startsWith('data:') ? '' : urlAtual;
   const img = document.getElementById('img-preview');
@@ -326,19 +365,29 @@ document.addEventListener('paste', e => {
 async function guardarImagem() {
   const url = document.getElementById('m-img-url').value.trim();
   const final = url || _imgDataAtual;
-  await updateCarrinha(_imgCarrinhaId, 'imagem', final);
+  if (_imgPerfilId) {
+    await guardarFotoPerfil(final);
+  } else {
+    await updateCarrinha(_imgCarrinhaId, 'imagem', final);
+    toast('Imagem guardada.');
+  }
   fecharModal('modal-img');
-  toast('Imagem guardada.');
 }
 
 async function removerImagem() {
-  await updateCarrinha(_imgCarrinhaId, 'imagem', '');
+  if (_imgPerfilId) {
+    await db.collection('perfis').doc(_imgPerfilId).update({ foto: '' });
+    toast('Foto removida.');
+  } else {
+    await updateCarrinha(_imgCarrinhaId, 'imagem', '');
+    toast('Imagem removida.');
+  }
   _imgDataAtual = '';
   fecharModal('modal-img');
-  toast('Imagem removida.');
 }
 
 window.abrirImgModal = abrirImgModal;
+window.abrirImgPerfil = abrirImgPerfil;
 window.previewImgUrl = previewImgUrl;
 window.guardarImagem = guardarImagem;
 window.removerImagem = removerImagem;
