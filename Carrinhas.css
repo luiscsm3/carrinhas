@@ -527,6 +527,7 @@ td.td-marca-edit:hover { color: var(--accent); }
 }
 .carrinha-tipo-icon { font-size: 12px; }
 
+<<<<<<< HEAD
 .select-tipo-veiculo {
   background: transparent;
   border: none;
@@ -537,6 +538,8 @@ td.td-marca-edit:hover { color: var(--accent); }
   color: var(--text);
 }
 
+=======
+>>>>>>> a51f888e246d09282bfe0fe91bf0136aeaaa80c8
 .carrinha-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
 .carrinha-fields { display: flex; flex-direction: column; gap: 5px; }
 
@@ -571,6 +574,7 @@ td.td-marca-edit:hover { color: var(--accent); }
 .carrinha-card-add:hover .carrinha-card-add-inner { color: var(--accent); }
 
 /* ── CORES POR CARGA ────────────────────────────────── */
+<<<<<<< HEAD
 .card-bg-petroleo     { --card-clr: #4ade80; }
 .card-bg-opio         { --card-clr: #818cf8; }
 .card-bg-metafetamina { --card-clr: #e879f9; }
@@ -594,6 +598,26 @@ td.td-marca-edit:hover { color: var(--accent); }
 .card-st-proc  { border-left: 3px solid var(--card-clr, var(--accent)); }
 .card-st-nproc { border-left: 3px solid var(--yellow); }
 .card-st-vazio { border-left: 3px solid var(--border2); }
+=======
+.card-bg-petroleo    { --card-clr: #4ade80; --card-bg: #090f09; }
+.card-bg-opio        { --card-clr: #818cf8; --card-bg: #09090f; }
+.card-bg-metafetamina{ --card-clr: #e879f9; --card-bg: #0f090f; }
+.card-bg-cocaina     { --card-clr: #fbbf24; --card-bg: #0f0e09; }
+.card-bg-materiais   { --card-clr: #f87171; --card-bg: #0f0909; }
+.card-bg-armas       { --card-clr: #60a5fa; --card-bg: #09090f; }
+.card-bg-dinheiro-sujo{ --card-clr: #34d399; --card-bg: #090f0b; }
+.card-bg-erva        { --card-clr: #86efac; --card-bg: #090f0a; }
+.card-bg-caixas      { --card-clr: #fcd34d; --card-bg: #0f0d09; }
+.card-bg-cenas-random{ --card-clr: #f9a8d4; --card-bg: #0f090d; }
+.card-bg-vazio, .card-bg- { --card-clr: var(--text-dim); --card-bg: var(--surface); }
+
+.carrinha-card[class*="card-bg-"] { background: var(--card-bg, var(--surface)); border-color: var(--border); }
+.card-st-proc  { border-left: 3px solid var(--card-clr, var(--accent)); }
+.card-st-nproc { border-left: 3px solid var(--yellow); }
+.card-st-vazio { border-left: 3px solid var(--border2); }
+.carrinha-card[class*="card-bg-"]:hover { border-color: var(--card-clr, var(--accent)); }
+
+>>>>>>> a51f888e246d09282bfe0fe91bf0136aeaaa80c8
 /* ── DRAG GRUPOS ────────────────────────────────────── */
 .marca-grupo[draggable="true"] { cursor: default; }
 
@@ -615,6 +639,7 @@ td.td-img { width: 48px; text-align: center; padding: 6px 8px; }
   width: 100%; max-width: 400px; box-shadow: var(--shadow-lg);
 }
 
+<<<<<<< HEAD
 .modal-confirm-card { max-width: 320px; }
 
 .confirm-msg {
@@ -653,6 +678,8 @@ td.td-img { width: 48px; text-align: center; padding: 6px 8px; }
 }
 .btn-confirm-ok:hover { opacity: .85; }
 
+=======
+>>>>>>> a51f888e246d09282bfe0fe91bf0136aeaaa80c8
 .modal h3 { font-family: var(--font-title); font-size: 22px; font-weight: 400; margin-bottom: 18px; color: var(--text); letter-spacing: 2px; }
 
 .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
@@ -661,6 +688,7 @@ td.td-img { width: 48px; text-align: center; padding: 6px 8px; }
 .field input:focus, .field select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
 .field input::placeholder { color: var(--text-dim); }
 
+<<<<<<< HEAD
 .lembrar-label {
   display: flex;
   align-items: center;
@@ -674,6 +702,8 @@ td.td-img { width: 48px; text-align: center; padding: 6px 8px; }
 }
 .lembrar-label input { cursor: pointer; accent-color: var(--accent); }
 
+=======
+>>>>>>> a51f888e246d09282bfe0fe91bf0136aeaaa80c8
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; align-items: center; }
 .modal-desc { font-size: 12px; color: var(--text-muted); margin-top: -10px; font-family: var(--mono); }
 .senha-erro { font-size: 12px; color: var(--red); margin-top: -6px; font-family: var(--mono); }
@@ -726,6 +756,7 @@ td.td-img { width: 48px; text-align: center; padding: 6px 8px; }
 .calc-field label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); font-family: var(--mono); }
 .calc-field select, .calc-field input[type="number"] { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: var(--mono); font-size: 13px; padding: 7px 10px; outline: none; height: 34px; width: 100%; transition: border-color .15s; }
 .calc-field select:focus, .calc-field input[type="number"]:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
+<<<<<<< HEAD
 
 /* ── TABELA CALCULADORA ─────────────────────────────── */
 .calc-table {
@@ -776,6 +807,9 @@ td.td-img { width: 48px; text-align: center; padding: 6px 8px; }
   border-top: 1px solid var(--border);
 }
 
+=======
+
+>>>>>>> a51f888e246d09282bfe0fe91bf0136aeaaa80c8
 .calc-result { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; }
 .calc-total { font-family: var(--font-title); font-size: 40px; font-weight: 400; color: var(--accent); letter-spacing: 2px; margin-bottom: 6px; line-height: 1; }
 .calc-detail { font-size: 11px; color: var(--text-muted); font-family: var(--mono); line-height: 1.7; white-space: pre-line; }
