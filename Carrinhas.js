@@ -8,6 +8,29 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+
+// ─── TEMA ─────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const isLight = html.getAttribute('data-theme') === 'light';
+  const next = isLight ? 'dark' : 'light';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  updateThemeBtns(next);
+}
+
+function updateThemeBtns(theme) {
+  const label = theme === 'light' ? '☀️ Light' : '🌙 Dark';
+  document.querySelectorAll('[id^="btn-theme"]').forEach(b => b.textContent = label);
+}
+
+(function() {
+  const saved = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  window.addEventListener('DOMContentLoaded', () => updateThemeBtns(saved));
+})();
+
+window.toggleTheme = toggleTheme;
 const db = firebase.firestore();
 
 let perfilAtual = null;
@@ -169,6 +192,11 @@ function renderCarrinhas(carrinhas) {
 
   tbody.innerHTML = carrinhas.map(c => `
     <tr>
+      <td class="td-img">
+        ${c.imagem
+          ? `<img class="td-thumb" src="${esc(c.imagem)}" onclick="abrirImgModal('${c.id}','${esc(c.imagem)}')" title="Clica para alterar" />`
+          : `<button class="btn-add-img" onclick="abrirImgModal('${c.id}','')" title="Adicionar imagem">+</button>`}
+      </td>
       <td class="td-matricula">${esc(c.matricula || '—')}</td>
       <td>${selectInline(c.id, 'carga', c.carga, CARGA_OPTS, 'badge-carga', CARGA_CLASS)}</td>
       <td>${selectInline(c.id, 'status', c.status, STATUS_OPTS, 'badge-status', STATUS_CLASS)}</td>
@@ -221,6 +249,99 @@ async function eliminarCarrinha(id) {
   await db.collection('perfis').doc(perfilAtual).collection('carrinhas').doc(id).delete();
   toast('Removida.');
 }
+
+// ─── IMAGEM ───────────────────────────────────────────
+
+let _imgCarrinhaId = null;
+let _imgDataAtual = '';
+
+function abrirImgModal(id, urlAtual) {
+  _imgCarrinhaId = id;
+  _imgDataAtual = urlAtual;
+  document.getElementById('m-img-url').value = urlAtual.startsWith('data:') ? '' : urlAtual;
+  const img = document.getElementById('img-preview');
+  const hint = document.getElementById('img-paste-hint');
+  if (urlAtual) {
+    img.src = urlAtual;
+    img.style.display = '';
+    hint.style.display = 'none';
+  } else {
+    img.src = '';
+    img.style.display = 'none';
+    hint.style.display = '';
+  }
+  document.getElementById('modal-img').classList.add('open');
+  setTimeout(() => document.getElementById('img-paste-zone').focus(), 100);
+}
+
+function setImgPreview(src) {
+  _imgDataAtual = src;
+  const img = document.getElementById('img-preview');
+  const hint = document.getElementById('img-paste-hint');
+  img.src = src;
+  img.style.display = src ? '' : 'none';
+  hint.style.display = src ? 'none' : '';
+}
+
+function previewImgUrl() {
+  const url = document.getElementById('m-img-url').value.trim();
+  setImgPreview(url);
+}
+
+function comprimirImagem(file, callback) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const imgEl = new Image();
+    imgEl.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX = 900;
+      let w = imgEl.width, h = imgEl.height;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(imgEl, 0, 0, w, h);
+      callback(canvas.toDataURL('image/jpeg', 0.75));
+    };
+    imgEl.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+document.addEventListener('paste', e => {
+  if (!document.getElementById('modal-img').classList.contains('open')) return;
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault();
+      comprimirImagem(item.getAsFile(), src => {
+        document.getElementById('m-img-url').value = '';
+        setImgPreview(src);
+        toast('Imagem colada!');
+      });
+      break;
+    }
+  }
+});
+
+async function guardarImagem() {
+  const url = document.getElementById('m-img-url').value.trim();
+  const final = url || _imgDataAtual;
+  await updateCarrinha(_imgCarrinhaId, 'imagem', final);
+  fecharModal('modal-img');
+  toast('Imagem guardada.');
+}
+
+async function removerImagem() {
+  await updateCarrinha(_imgCarrinhaId, 'imagem', '');
+  _imgDataAtual = '';
+  fecharModal('modal-img');
+  toast('Imagem removida.');
+}
+
+window.abrirImgModal = abrirImgModal;
+window.previewImgUrl = previewImgUrl;
+window.guardarImagem = guardarImagem;
+window.removerImagem = removerImagem;
 
 // ─── MODAIS ───────────────────────────────────────────
 
@@ -353,27 +474,34 @@ function calcDrogas() {
   document.getElementById('calc-droga-detail').textContent = `${fmt(preco)} × ${qtd} unidade${qtd !== 1 ? 's' : ''} — ${tipoLabel}`;
 }
 
+function multiplicarMateriais(materiaisStr, qtd) {
+  if (qtd === 1) return materiaisStr;
+  return materiaisStr.replace(/(\d+)/g, n => parseInt(n) * qtd);
+}
+
 function calcArmas() {
   const arma = ARMAS[document.getElementById('c-arma').value];
   const tipo = document.getElementById('c-arma-tipo').value;
+  const qtd = Math.max(1, parseInt(document.getElementById('c-arma-qtd').value) || 1);
   const preco = arma[tipo];
+  const total = preco * qtd;
   const tipoLabel = { civil: 'Civil', com_mat: 'Contratado com Materiais', sem_mat: 'Contratado sem Materiais' }[tipo];
-  document.getElementById('calc-arma-total').textContent = fmt(preco);
-  const detalhe = tipo === 'com_mat'
-    ? `${tipoLabel} — Materiais necessários: ${arma.materiais}`
-    : tipoLabel;
+  document.getElementById('calc-arma-total').textContent = fmt(total);
+  let detalhe = `${fmt(preco)} × ${qtd} unidade${qtd !== 1 ? 's' : ''} — ${tipoLabel}`;
+  if (tipo === 'com_mat') detalhe += `\nMateriais necessários: ${multiplicarMateriais(arma.materiais, qtd)}`;
   document.getElementById('calc-arma-detail').textContent = detalhe;
 }
 
 function calcAcessorios() {
   const ac = ACESSORIOS[document.getElementById('c-acessorio').value];
   const tipo = document.getElementById('c-acessorio-tipo').value;
+  const qtd = Math.max(1, parseInt(document.getElementById('c-acessorio-qtd').value) || 1);
   const preco = ac[tipo];
+  const total = preco * qtd;
   const tipoLabel = { civil: 'Civil', com_mat: 'Contratado com Materiais', sem_mat: 'Contratado sem Materiais' }[tipo];
-  document.getElementById('calc-acessorio-total').textContent = fmt(preco);
-  const detalhe = tipo === 'com_mat'
-    ? `${tipoLabel} — Materiais necessários: ${ac.materiais}`
-    : tipoLabel;
+  document.getElementById('calc-acessorio-total').textContent = fmt(total);
+  let detalhe = `${fmt(preco)} × ${qtd} unidade${qtd !== 1 ? 's' : ''} — ${tipoLabel}`;
+  if (tipo === 'com_mat') detalhe += `\nMateriais necessários: ${multiplicarMateriais(ac.materiais, qtd)}`;
   document.getElementById('calc-acessorio-detail').textContent = detalhe;
 }
 
