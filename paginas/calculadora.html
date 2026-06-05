@@ -1,0 +1,134 @@
+<!-- ═══════════════════════════════════════════ -->
+<!--        OVERLAY — CALCULADORA              -->
+<!-- ═══════════════════════════════════════════ -->
+
+<div id="view-calculadora" style="display:none;" onclick="fecharCalculadoraOverlay(event)">
+  <div class="calc-card">
+    <div class="calc-card-header">
+      <h2>🧮 Calculadora de Preços</h2>
+      <button class="calc-close" onclick="fecharCalculadora()">×</button>
+    </div>
+
+    <div class="calc-tabs">
+      <button class="calc-tab active" id="tab-drogas" onclick="calcTab('drogas')">💊 Drogas</button>
+      <button class="calc-tab" id="tab-armas" onclick="calcTab('armas')">🔫 Armas</button>
+      <button class="calc-tab" id="tab-acessorios" onclick="calcTab('acessorios')">🎒 Acessórios</button>
+    </div>
+
+    <!-- Tab: Drogas -->
+    <div id="calc-drogas" class="calc-section">
+      <div class="calc-controls">
+        <div class="calc-row">
+          <div class="calc-field">
+            <label>Produto</label>
+            <select id="c-droga" onchange="calcDrogas()">
+              <option value="weed">Weed</option>
+              <option value="cocaina">Cocaína</option>
+              <option value="opio">Ópio</option>
+              <option value="meta">Meta</option>
+              <option value="petroleo">Petróleo</option>
+            </select>
+          </div>
+          <div class="calc-field" style="max-width:100px;">
+            <label>Quantidade</label>
+            <input id="c-qtd" type="number" min="1" value="1" oninput="calcDrogas()" />
+          </div>
+        </div>
+        <div class="calc-field">
+          <label>Tipo</label>
+          <select id="c-tipo" onchange="calcDrogas()">
+            <option value="civil">Civil</option>
+            <option value="limpo">Contratado Limpo</option>
+            <option value="sujo">Contratado Sujo</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-result">
+        <div class="calc-total" id="calc-droga-total">—</div>
+        <div class="calc-detail" id="calc-droga-detail"></div>
+      </div>
+    </div>
+
+    <!-- Tab: Armas -->
+    <div id="calc-armas" class="calc-section" style="display:none;">
+      <div class="calc-controls">
+        <div class="calc-row">
+          <div class="calc-field">
+            <label>Arma</label>
+            <select id="c-arma" onchange="calcArmas()">
+              <option value="hk">HK</option>
+              <option value="deagle">Deagle</option>
+              <option value="microuzi">Micro Uzi</option>
+              <option value="tec9">Tec 9</option>
+              <option value="mpx">Mpx</option>
+              <option value="tommygun">Tommy Gun</option>
+              <option value="minidraco">Mini Draco</option>
+              <option value="shotgun">Shotgun Tática</option>
+              <option value="p90">P90</option>
+              <option value="qbz">Qbz</option>
+              <option value="ak47">Ak-47</option>
+              <option value="ak12">Ak-12</option>
+              <option value="g36">G36</option>
+              <option value="g2">G2</option>
+              <option value="spaz12">Spaz 12</option>
+            </select>
+          </div>
+          <div class="calc-field" style="max-width:100px;">
+            <label>Quantidade</label>
+            <input id="c-arma-qtd" type="number" min="1" value="1" oninput="calcArmas()" />
+          </div>
+        </div>
+        <div class="calc-field">
+          <label>Tipo</label>
+          <select id="c-arma-tipo" onchange="calcArmas()">
+            <option value="civil">Civil</option>
+            <option value="com_mat">Contratado com Materiais</option>
+            <option value="sem_mat">Contratado sem Materiais</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-result">
+        <div class="calc-total" id="calc-arma-total">—</div>
+        <div class="calc-detail" id="calc-arma-detail"></div>
+      </div>
+    </div>
+
+    <!-- Tab: Acessórios -->
+    <div id="calc-acessorios" class="calc-section" style="display:none;">
+      <div class="calc-controls">
+        <div class="calc-row">
+          <div class="calc-field">
+            <label>Acessório</label>
+            <select id="c-acessorio" onchange="calcAcessorios()">
+              <option value="coletes">Coletes</option>
+              <option value="oxydona">Oxydona</option>
+              <option value="carregador">Carregador Estendido</option>
+              <option value="mira_holo">Mira Holográfica</option>
+              <option value="mira">Mira</option>
+              <option value="compensador">Compensador</option>
+              <option value="drone">Drone</option>
+              <option value="c4">C4</option>
+              <option value="id_falso">ID Falso</option>
+            </select>
+          </div>
+          <div class="calc-field" style="max-width:100px;">
+            <label>Quantidade</label>
+            <input id="c-acessorio-qtd" type="number" min="1" value="1" oninput="calcAcessorios()" />
+          </div>
+        </div>
+        <div class="calc-field">
+          <label>Tipo</label>
+          <select id="c-acessorio-tipo" onchange="calcAcessorios()">
+            <option value="civil">Civil</option>
+            <option value="com_mat">Contratado com Materiais</option>
+            <option value="sem_mat">Contratado sem Materiais</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-result">
+        <div class="calc-total" id="calc-acessorio-total">—</div>
+        <div class="calc-detail" id="calc-acessorio-detail"></div>
+      </div>
+    </div>
+  </div>
+</div>

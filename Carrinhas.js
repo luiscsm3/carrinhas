@@ -216,7 +216,10 @@ function renderCarrinhas(carrinhas) {
         : `<span class="carrinha-img-plus">+</span>`}
       <div class="perfil-avatar-overlay">✎</div>
     </div>
-    <div class="carrinha-matricula">${esc(c.matricula || '—')}</div>
+    <div class="carrinha-matricula">
+      <span class="carrinha-tipo-icon">${c.tipoVeiculo === 'Carro' ? '🚗' : c.tipoVeiculo === 'Mota' ? '🏍️' : c.tipoVeiculo === 'Barco' ? '⛵' : '🚐'}</span>
+      ${esc(c.matricula || '—')}
+    </div>
     <div class="carrinha-badges">
       ${selectInline(c.id, 'carga', c.carga, CARGA_OPTS, 'badge-carga', CARGA_CLASS)}
       ${selectInline(c.id, 'status', c.status, STATUS_OPTS, 'badge-status', STATUS_CLASS)}
@@ -263,11 +266,13 @@ async function adicionarCarrinha() {
   const notas = document.getElementById('m-notas').value.trim();
 
   const marca = document.getElementById('m-marca').value.trim();
+  const tipoVeiculo = document.getElementById('m-tipo-veiculo').value;
   await db.collection('perfis').doc(perfilAtual).collection('carrinhas').add({
-    marca, matricula, carga, status, estado, notas
+    tipoVeiculo, marca, matricula, carga, status, estado, notas
   });
 
   fecharModal('modal-carrinha');
+  document.getElementById('m-tipo-veiculo').value = 'Carrinha';
   document.getElementById('m-marca').value = '';
   document.getElementById('m-matricula').value = '';
   document.getElementById('m-carga').value = '';

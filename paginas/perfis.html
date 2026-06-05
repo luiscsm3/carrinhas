@@ -1,0 +1,22 @@
+<!-- ═══════════════════════════════════════════ -->
+<!--           PÁGINA 1 — PERFIS               -->
+<!-- ═══════════════════════════════════════════ -->
+
+<div id="view-perfis">
+  <header>
+    <div class="header-left">
+      <h1>Carrinhas</h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn-theme" id="btn-theme" onclick="toggleTheme()">🌙 Escuro</button>
+      <button class="btn-ghost" onclick="abrirCalculadora()">🧮 Calculadora</button>
+      <button class="btn-primary" onclick="abrirModalPerfil()">+ Novo perfil</button>
+    </div>
+  </header>
+
+  <div id="perfis-grid" class="perfis-grid"></div>
+  <div id="perfis-empty" class="empty-state" style="display:none;">
+    <div class="empty-icon">🚐</div>
+    <p>Nenhum perfil criado ainda.</p>
+  </div>
+</div>

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestão de Carrinhas</title>
+<link rel="icon" type="image/png" href="35.png">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="Carrinhas.css">
 </head>
@@ -16,8 +17,8 @@
       <h1>Carrinhas</h1>
     </div>
     <div class="header-actions">
-      <button class="btn-theme" id="btn-theme" onclick="toggleTheme()">🌙 Dark</button>
-      <button class="btn-ghost" onclick="abrirCalculadora()">🧮 Calculadora</button>
+      <button class="btn-theme" id="btn-theme" onclick="toggleTheme()">🌙 Escuro</button>
+      <button class="btn-ghost" onclick="abrirCalculadora()">Calculadora</button>
       <button class="btn-primary" onclick="abrirModalPerfil()">+ Novo perfil</button>
     </div>
   </header>
@@ -40,15 +41,15 @@
       </div>
     </div>
     <div class="header-actions">
-      <button class="btn-theme" id="btn-theme-carrinhas" onclick="toggleTheme()">🌙 Dark</button>
-      <button class="btn-ghost" onclick="abrirCalculadora()">🧮 Calculadora</button>
+      <button class="btn-theme" id="btn-theme-carrinhas" onclick="toggleTheme()">🌙 Escuro</button>
+      <button class="btn-ghost" onclick="abrirCalculadora()">Calculadora</button>
       <button class="btn-primary" onclick="abrirModalCarrinha()">+ Adicionar carrinha</button>
     </div>
   </header>
 
   <div id="carrinhas-grid" class="carrinhas-grid"></div>
   <div id="carrinhas-empty" class="empty-state" style="display:none;">
-    <div class="empty-icon">🚐</div>
+    <div class="empty-icon"><img src="35.png" style="width:64px;height:64px;object-fit:contain;" /></div>
     <p>Nenhuma carrinha registada.</p>
   </div>
 </div>
@@ -57,7 +58,7 @@
 <div id="view-calculadora" style="display:none;" onclick="fecharCalculadoraOverlay(event)">
   <div class="calc-card">
     <div class="calc-card-header">
-      <h2>🧮 Calculadora de Preços</h2>
+      <h2>Calculadora</h2>
       <button class="calc-close" onclick="fecharCalculadora()">×</button>
     </div>
 
@@ -224,7 +225,16 @@
 <!-- MODAL CARRINHA -->
 <div class="modal-overlay" id="modal-carrinha" onclick="fecharModalCarrinha(event)">
   <div class="modal">
-    <h3>Nova Carrinha</h3>
+    <h3>Adicionar Veículo</h3>
+    <div class="field">
+      <label>Tipo de Veículo</label>
+      <select id="m-tipo-veiculo">
+        <option value="Carrinha">🚐 Carrinha</option>
+        <option value="Carro">🚗 Carro</option>
+        <option value="Mota">🏍️ Mota</option>
+        <option value="Barco">⛵ Barco</option>
+      </select>
+    </div>
     <div class="field">
       <label>Marca</label>
       <input id="m-marca" type="text" placeholder="ex: Burrito, Bravado..." />

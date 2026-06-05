@@ -317,7 +317,10 @@ h1 {
   font-size: 12px; font-weight: 700;
   color: var(--accent); margin-bottom: 7px;
   letter-spacing: 0.05em;
+  display: flex; align-items: center; gap: 5px;
 }
+
+.carrinha-tipo-icon { font-size: 13px; }
 
 .carrinha-badges {
   display: flex; flex-wrap: wrap; gap: 4px;

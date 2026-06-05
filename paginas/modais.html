@@ -1,0 +1,129 @@
+<!-- ═══════════════════════════════════════════ -->
+<!--              MODAIS GLOBAIS               -->
+<!-- ═══════════════════════════════════════════ -->
+
+<!-- Modal: Novo Perfil -->
+<div class="modal-overlay" id="modal-perfil" onclick="fecharModalPerfil(event)">
+  <div class="modal">
+    <h3>Novo Perfil</h3>
+    <div class="field">
+      <label>Nome do perfil</label>
+      <input id="m-perfil-nome" type="text" placeholder="ex: João Silva" />
+    </div>
+    <div class="field">
+      <label>Palavra-passe</label>
+      <input id="m-perfil-senha" type="password" placeholder="Palavra-passe do perfil" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="fecharModal('modal-perfil')">Cancelar</button>
+      <button class="btn-primary" onclick="criarPerfil()">Criar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Palavra-passe -->
+<div class="modal-overlay" id="modal-senha" onclick="fecharModalSenha(event)">
+  <div class="modal">
+    <h3>🔒 Perfil protegido</h3>
+    <p class="modal-desc" id="modal-senha-desc"></p>
+    <div class="field" style="margin-top:16px;">
+      <label>Palavra-passe</label>
+      <input id="m-senha-input" type="password" placeholder="Introduz a palavra-passe..." />
+    </div>
+    <p class="senha-erro" id="senha-erro" style="display:none;">Palavra-passe incorreta.</p>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="fecharModal('modal-senha')">Cancelar</button>
+      <button class="btn-primary" onclick="confirmarSenha()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nova Carrinha / Carro / Mota -->
+<div class="modal-overlay" id="modal-carrinha" onclick="fecharModalCarrinha(event)">
+  <div class="modal">
+    <h3>Adicionar Veículo</h3>
+    <div class="field">
+      <label>Tipo de Veículo</label>
+      <select id="m-tipo-veiculo">
+        <option value="Carrinha">🚐 Carrinha</option>
+        <option value="Carro">🚗 Carro</option>
+        <option value="Mota">🏍️ Mota</option>
+        <option value="Barco">⛵ Barco</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Marca</label>
+      <input id="m-marca" type="text" placeholder="ex: Burrito, Bravado..." />
+    </div>
+    <div class="field">
+      <label>Matrícula</label>
+      <input id="m-matricula" type="text" placeholder="ex: FI7 9VI" />
+    </div>
+    <div class="field">
+      <label>Tipo de Carga</label>
+      <select id="m-carga">
+        <option value="">— Selecionar —</option>
+        <option>Vazio</option>
+        <option>Petróleo</option>
+        <option>Ópio</option>
+        <option>Metafetamina</option>
+        <option>Cocaína</option>
+        <option>Materiais</option>
+        <option>Armas</option>
+        <option>Dinheiro Sujo</option>
+        <option>Erva</option>
+        <option>CAIXAS</option>
+        <option>Cenas Random</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="m-status">
+        <option value="">— Selecionar —</option>
+        <option>Vazio</option>
+        <option>Processado</option>
+        <option>Não Processado</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Estado</label>
+      <input id="m-estado" type="text" placeholder="ex: Cheio, 249..." />
+    </div>
+    <div class="field">
+      <label>Notas</label>
+      <input id="m-notas" type="text" placeholder="Notas opcionais..." />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="fecharModal('modal-carrinha')">Cancelar</button>
+      <button class="btn-primary" onclick="adicionarCarrinha()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Imagem -->
+<div class="modal-overlay" id="modal-img" onclick="if(event.target===this)fecharModal('modal-img')">
+  <div class="modal">
+    <h3 id="modal-img-titulo">📷 Imagem</h3>
+    <div class="img-paste-zone" id="img-paste-zone" tabindex="0">
+      <img id="img-preview" src="" alt="preview" style="display:none;" />
+      <div class="img-paste-hint" id="img-paste-hint">
+        <span>Ctrl+V para colar print</span>
+        <small>ou usa as opções abaixo</small>
+      </div>
+    </div>
+    <div class="img-opcoes">
+      <button class="btn-ghost" onclick="document.getElementById('img-file-input').click()">📁 Procurar ficheiro</button>
+      <input id="img-file-input" type="file" accept="image/*" style="display:none;" onchange="carregarFicheiro(this)" />
+    </div>
+    <div class="field" style="margin-top:12px;">
+      <label>URL da imagem (opcional)</label>
+      <input id="m-img-url" type="url" placeholder="https://..." oninput="previewImgUrl()" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-del-img" onclick="removerImagem()">Remover</button>
+      <div style="flex:1"></div>
+      <button class="btn-ghost" onclick="fecharModal('modal-img')">Cancelar</button>
+      <button class="btn-primary" onclick="guardarImagem()">Guardar</button>
+    </div>
+  </div>
+</div>
