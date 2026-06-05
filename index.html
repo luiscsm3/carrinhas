@@ -14,7 +14,6 @@
   <header>
     <div class="header-left">
       <h1>Carrinhas</h1>
-      <p class="subtitle">Gestão de frotas</p>
     </div>
     <div class="header-actions">
       <button class="btn-theme" id="btn-theme" onclick="toggleTheme()">🌙 Dark</button>
@@ -47,21 +46,10 @@
     </div>
   </header>
 
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Img</th>
-          <th>Matrícula</th>
-          <th>Tipo de Carga</th>
-          <th>Status</th>
-          <th>Estado</th>
-          <th>Notas</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="carrinhas-tbody"></tbody>
-    </table>
+  <div id="carrinhas-grid" class="carrinhas-grid"></div>
+  <div id="carrinhas-empty" class="empty-state" style="display:none;">
+    <div class="empty-icon">🚐</div>
+    <p>Nenhuma carrinha registada.</p>
   </div>
 </div>
 
@@ -238,6 +226,10 @@
   <div class="modal">
     <h3>Nova Carrinha</h3>
     <div class="field">
+      <label>Marca</label>
+      <input id="m-marca" type="text" placeholder="ex: Burrito, Bravado..." />
+    </div>
+    <div class="field">
       <label>Matrícula</label>
       <input id="m-matricula" type="text" placeholder="ex: FI7 9VI" />
     </div>
@@ -290,8 +282,12 @@
       <img id="img-preview" src="" alt="preview" style="display:none;" />
       <div class="img-paste-hint" id="img-paste-hint">
         <span>Ctrl+V para colar print</span>
-        <small>ou cola um URL abaixo</small>
+        <small>ou usa as opções abaixo</small>
       </div>
+    </div>
+    <div class="img-opcoes">
+      <button class="btn-ghost" onclick="document.getElementById('img-file-input').click()">📁 Procurar ficheiro</button>
+      <input id="img-file-input" type="file" accept="image/*" style="display:none;" onchange="carregarFicheiro(this)" />
     </div>
     <div class="field" style="margin-top:12px;">
       <label>URL da imagem (opcional)</label>

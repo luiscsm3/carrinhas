@@ -228,6 +228,137 @@ h1 {
 }
 .perfil-del:hover { color: var(--red); background: var(--red-dim); }
 
+/* ── CARRINHAS GRID ─────────────────────────────────── */
+.carrinhas-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.marca-grupo {}
+
+.marca-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.marca-nome {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.marca-count {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 1px 8px;
+}
+
+.marca-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.carrinha-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 10px;
+  position: relative;
+  box-shadow: var(--shadow);
+  transition: border-color .2s, box-shadow .2s, transform .15s;
+}
+.carrinha-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 4px 20px var(--accent-glow);
+  transform: translateY(-2px);
+}
+
+.carrinha-img {
+  width: 100%;
+  height: 80px;
+  border-radius: var(--radius);
+  background: var(--surface2);
+  border: 1px dashed var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 12px;
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+  transition: border-color .15s;
+}
+.carrinha-img:hover { border-color: var(--accent); }
+.carrinha-img:hover .perfil-avatar-overlay { opacity: 1; }
+
+.carrinha-img-foto {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+
+.carrinha-img-plus {
+  font-size: 24px; color: var(--text-dim);
+  transition: color .15s;
+}
+.carrinha-img:hover .carrinha-img-plus { color: var(--accent); }
+
+.carrinha-matricula {
+  font-family: var(--mono);
+  font-size: 12px; font-weight: 700;
+  color: var(--accent); margin-bottom: 7px;
+  letter-spacing: 0.05em;
+}
+
+.carrinha-badges {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  margin-bottom: 7px;
+}
+
+.carrinha-fields {
+  display: flex; flex-direction: column; gap: 5px;
+}
+
+.carrinha-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px; color: var(--text);
+  font-family: var(--mono); padding: 5px 8px;
+  width: 100%; outline: none;
+  resize: none; overflow: hidden;
+  min-height: 30px; line-height: 1.5;
+  transition: border-color .15s, height .1s;
+  display: block;
+}
+.carrinha-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
+.carrinha-input::placeholder { color: var(--text-dim); }
+
+.carrinha-btn-del {
+  width: 100%;
+  margin-top: 7px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.carrinha-btn-del:hover { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+
 /* ── TABELA ──────────────────────────────────────────── */
 .table-wrap {
   border: 1px solid var(--border);
@@ -389,6 +520,12 @@ td.td-img { width: 48px; text-align: center; padding: 6px 8px; }
   transition: border-color .2s;
 }
 .img-paste-zone:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+
+.img-opcoes {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
 
 .img-paste-hint { display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; }
 .img-paste-hint span { font-family: var(--mono); font-size: 12px; color: var(--text-muted); }

@@ -189,27 +189,56 @@ function renderCarrinhas(carrinhas) {
   const emUso = carrinhas.filter(c => c.carga && c.carga !== 'Vazio').length;
   document.getElementById('perfil-contador').textContent = `${emUso} / ${carrinhas.length} carrinhas em uso`;
 
-  const tbody = document.getElementById('carrinhas-tbody');
+  const grid = document.getElementById('carrinhas-grid');
+  const empty = document.getElementById('carrinhas-empty');
+
   if (!carrinhas.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">— Sem carrinhas registadas —</td></tr>';
+    grid.innerHTML = '';
+    empty.style.display = '';
     return;
   }
+  empty.style.display = 'none';
 
-  tbody.innerHTML = carrinhas.map(c => `
-    <tr>
-      <td class="td-img">
-        ${c.imagem
-          ? `<img class="td-thumb" src="${esc(c.imagem)}" onclick="abrirImgModal('${c.id}','${esc(c.imagem)}')" title="Clica para alterar" />`
-          : `<button class="btn-add-img" onclick="abrirImgModal('${c.id}','')" title="Adicionar imagem">+</button>`}
-      </td>
-      <td class="td-matricula">${esc(c.matricula || '—')}</td>
-      <td>${selectInline(c.id, 'carga', c.carga, CARGA_OPTS, 'badge-carga', CARGA_CLASS)}</td>
-      <td>${selectInline(c.id, 'status', c.status, STATUS_OPTS, 'badge-status', STATUS_CLASS)}</td>
-      <td class="td-estado"><input class="input-inline" value="${esc(c.estado || '')}" placeholder="—" onchange="updateCarrinha('${c.id}','estado',this.value)" /></td>
-      <td class="td-notas"><input class="input-inline" value="${esc(c.notas || '')}" placeholder="—" onchange="updateCarrinha('${c.id}','notas',this.value)" /></td>
-      <td class="td-actions"><button class="btn-del" onclick="eliminarCarrinha('${c.id}')">×</button></td>
-    </tr>
+  // Agrupar por marca
+  const grupos = {};
+  carrinhas.forEach(c => {
+    const marca = c.marca?.trim() || '—';
+    if (!grupos[marca]) grupos[marca] = [];
+    grupos[marca].push(c);
+  });
+
+  const marcasOrdenadas = Object.keys(grupos).sort((a, b) => a === '—' ? 1 : b === '—' ? -1 : a.localeCompare(b));
+
+  const carrinhaCard = c => `<div class="carrinha-card">
+    <div class="carrinha-img" onclick="abrirImgModal('${c.id}','${esc(c.imagem || '')}')">
+      ${c.imagem
+        ? `<img src="${esc(c.imagem)}" class="carrinha-img-foto" />`
+        : `<span class="carrinha-img-plus">+</span>`}
+      <div class="perfil-avatar-overlay">✎</div>
+    </div>
+    <div class="carrinha-matricula">${esc(c.matricula || '—')}</div>
+    <div class="carrinha-badges">
+      ${selectInline(c.id, 'carga', c.carga, CARGA_OPTS, 'badge-carga', CARGA_CLASS)}
+      ${selectInline(c.id, 'status', c.status, STATUS_OPTS, 'badge-status', STATUS_CLASS)}
+    </div>
+    <div class="carrinha-fields">
+      <textarea class="carrinha-input" placeholder="Estado..." onchange="updateCarrinha('${c.id}','estado',this.value)" oninput="autoResize(this)">${esc(c.estado || '')}</textarea>
+      <textarea class="carrinha-input" placeholder="Notas..." onchange="updateCarrinha('${c.id}','notas',this.value)" oninput="autoResize(this)">${esc(c.notas || '')}</textarea>
+    </div>
+    <button class="carrinha-btn-del" onclick="eliminarCarrinha('${c.id}')">Remover</button>
+  </div>`;
+
+  grid.innerHTML = marcasOrdenadas.map(marca => `
+    <div class="marca-grupo">
+      <div class="marca-header">
+        <span class="marca-nome">${esc(marca)}</span>
+        <span class="marca-count">${grupos[marca].length} carrinha${grupos[marca].length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="marca-cards">${grupos[marca].map(carrinhaCard).join('')}</div>
+    </div>
   `).join('');
+
+  grid.querySelectorAll('.carrinha-input').forEach(el => autoResize(el));
 }
 
 function selectInline(id, field, value, opts, badgeClass, classMap) {
@@ -233,11 +262,13 @@ async function adicionarCarrinha() {
   const estado = document.getElementById('m-estado').value.trim();
   const notas = document.getElementById('m-notas').value.trim();
 
+  const marca = document.getElementById('m-marca').value.trim();
   await db.collection('perfis').doc(perfilAtual).collection('carrinhas').add({
-    matricula, carga, status, estado, notas
+    marca, matricula, carga, status, estado, notas
   });
 
   fecharModal('modal-carrinha');
+  document.getElementById('m-marca').value = '';
   document.getElementById('m-matricula').value = '';
   document.getElementById('m-carga').value = '';
   document.getElementById('m-status').value = '';
@@ -345,6 +376,19 @@ function comprimirImagem(file, callback) {
   reader.readAsDataURL(file);
 }
 
+function carregarFicheiro(input) {
+  const file = input.files[0];
+  if (!file) return;
+  comprimirImagem(file, src => {
+    document.getElementById('m-img-url').value = '';
+    setImgPreview(src);
+    toast('Imagem carregada!');
+  });
+  input.value = '';
+}
+
+window.carregarFicheiro = carregarFicheiro;
+
 document.addEventListener('paste', e => {
   if (!document.getElementById('modal-img').classList.contains('open')) return;
   const items = e.clipboardData?.items;
@@ -432,6 +476,13 @@ function toast(msg) {
   clearTimeout(el._t);
   el._t = setTimeout(() => el.classList.remove('show'), 2000);
 }
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+window.autoResize = autoResize;
 
 function esc(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
