@@ -434,11 +434,44 @@ function fmt(n) {
 
 let _calcViewAnterior = null;
 
+function salvarEstadoCalc() {
+  localStorage.setItem('calc', JSON.stringify({
+    tab:          document.querySelector('.calc-tab.active')?.id?.replace('tab-','') || 'drogas',
+    droga:        document.getElementById('c-droga')?.value,
+    qtd:          document.getElementById('c-qtd')?.value,
+    tipo:         document.getElementById('c-tipo')?.value,
+    arma:         document.getElementById('c-arma')?.value,
+    armaQtd:      document.getElementById('c-arma-qtd')?.value,
+    armaTipo:     document.getElementById('c-arma-tipo')?.value,
+    acessorio:    document.getElementById('c-acessorio')?.value,
+    acessorioQtd: document.getElementById('c-acessorio-qtd')?.value,
+    acessorioTipo:document.getElementById('c-acessorio-tipo')?.value,
+  }));
+}
+
+function restaurarEstadoCalc() {
+  try {
+    const s = JSON.parse(localStorage.getItem('calc'));
+    if (!s) return;
+    if (s.droga)         document.getElementById('c-droga').value          = s.droga;
+    if (s.qtd)           document.getElementById('c-qtd').value            = s.qtd;
+    if (s.tipo)          document.getElementById('c-tipo').value           = s.tipo;
+    if (s.arma)          document.getElementById('c-arma').value           = s.arma;
+    if (s.armaQtd)       document.getElementById('c-arma-qtd').value       = s.armaQtd;
+    if (s.armaTipo)      document.getElementById('c-arma-tipo').value      = s.armaTipo;
+    if (s.acessorio)     document.getElementById('c-acessorio').value      = s.acessorio;
+    if (s.acessorioQtd)  document.getElementById('c-acessorio-qtd').value  = s.acessorioQtd;
+    if (s.acessorioTipo) document.getElementById('c-acessorio-tipo').value = s.acessorioTipo;
+    if (s.tab)           calcTab(s.tab);
+  } catch(e) {}
+}
+
 function abrirCalculadora() {
   _calcViewAnterior = document.getElementById('view-carrinhas').style.display !== 'none' ? 'carrinhas' : 'perfis';
   document.getElementById('view-perfis').style.display = 'none';
   document.getElementById('view-carrinhas').style.display = 'none';
   document.getElementById('view-calculadora').style.display = '';
+  restaurarEstadoCalc();
   calcDrogas();
 }
 
@@ -472,6 +505,7 @@ function calcDrogas() {
   const tipoLabel = { civil: 'Civil', limpo: 'Contratado Limpo', sujo: 'Contratado Sujo' }[tipo];
   document.getElementById('calc-droga-total').textContent = fmt(total);
   document.getElementById('calc-droga-detail').textContent = `${fmt(preco)} × ${qtd} unidade${qtd !== 1 ? 's' : ''} — ${tipoLabel}`;
+  salvarEstadoCalc();
 }
 
 function multiplicarMateriais(materiaisStr, qtd) {
@@ -490,6 +524,7 @@ function calcArmas() {
   let detalhe = `${fmt(preco)} × ${qtd} unidade${qtd !== 1 ? 's' : ''} — ${tipoLabel}`;
   if (tipo === 'com_mat') detalhe += `\nMateriais necessários: ${multiplicarMateriais(arma.materiais, qtd)}`;
   document.getElementById('calc-arma-detail').textContent = detalhe;
+  salvarEstadoCalc();
 }
 
 function calcAcessorios() {
@@ -503,6 +538,7 @@ function calcAcessorios() {
   let detalhe = `${fmt(preco)} × ${qtd} unidade${qtd !== 1 ? 's' : ''} — ${tipoLabel}`;
   if (tipo === 'com_mat') detalhe += `\nMateriais necessários: ${multiplicarMateriais(ac.materiais, qtd)}`;
   document.getElementById('calc-acessorio-detail').textContent = detalhe;
+  salvarEstadoCalc();
 }
 
 window.abrirCalculadora = abrirCalculadora;
