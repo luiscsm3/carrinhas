@@ -35,6 +35,20 @@ const db = firebase.firestore();
 
 let perfilAtual = null;
 let unsubCarrinhas = null;
+let viewMode = localStorage.getItem('viewMode') || 'cards';
+
+function toggleViewMode() {
+  viewMode = viewMode === 'cards' ? 'table' : 'cards';
+  localStorage.setItem('viewMode', viewMode);
+  const btn = document.getElementById('btn-view-toggle');
+  if (btn) btn.textContent = viewMode === 'cards' ? '⊞' : '☰';
+  if (unsubCarrinhas) unsubCarrinhas();
+  unsubCarrinhas = db.collection('perfis').doc(perfilAtual).collection('carrinhas')
+    .orderBy('matricula').onSnapshot(snap => {
+      renderCarrinhas(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+}
+window.toggleViewMode = toggleViewMode;
 
 const CARGA_CLASS = {
   'Vazio': 'carga-vazio',
@@ -189,6 +203,12 @@ function voltarPerfis() {
 }
 
 function renderCarrinhas(carrinhas) {
+  _todasCarrinhas = carrinhas;
+  atualizarFiltroMarcas(carrinhas);
+  aplicarFiltros();
+}
+
+function renderCarrinhasInterno(carrinhas) {
   const emUso = carrinhas.filter(c => c.carga && c.carga !== 'Vazio').length;
   const tipos = { '🚐': 0, '🚗': 0, '🏍️': 0, '⛵': 0 };
   carrinhas.forEach(c => {
@@ -207,6 +227,12 @@ function renderCarrinhas(carrinhas) {
     return;
   }
   empty.style.display = 'none';
+
+  // Atualizar botão de toggle
+  const btn = document.getElementById('btn-view-toggle');
+  if (btn) btn.textContent = viewMode === 'cards' ? '⊞' : '☰';
+
+  if (viewMode === 'table') { renderTabela(carrinhas, grid); return; }
 
   // Ordenar por campo `ordem`, depois por matrícula
   carrinhas.sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999) || (a.matricula || '').localeCompare(b.matricula || ''));
@@ -258,16 +284,19 @@ function renderCarrinhas(carrinhas) {
       <div class="carrinha-card-add-inner">+</div>
     </div>`;
 
-  grid.innerHTML = marcasOrdenadas.map((marca, idx) => `
-    <div class="marca-grupo" data-marca="${esc(marca)}">
+  grid.innerHTML = marcasOrdenadas.map((marca) => `
+    <div class="marca-grupo" data-marca="${esc(marca)}"
+      draggable="true"
+      ondragstart="dragMarcaStart(event)"
+      ondragover="dragMarcaOver(event)"
+      ondragleave="dragMarcaLeave(event)"
+      ondrop="dragMarcaDrop(event)"
+      ondragend="dragMarcaEnd(event)">
       <div class="marca-header" onclick="toggleMarca(this)">
+        <span class="marca-drag-handle" title="Arrastar para reordenar">⠿</span>
         <span class="marca-chevron">▾</span>
         <span class="marca-nome">${esc(marca)}</span>
         <span class="marca-count">${grupos[marca].length} carrinha${grupos[marca].length !== 1 ? 's' : ''}</span>
-        <div class="marca-ordem-btns" onclick="event.stopPropagation()">
-          ${idx > 0 ? `<button class="marca-ordem-btn" onclick="moverMarca('${esc(marca)}',-1)" title="Mover para cima">▲</button>` : '<span class="marca-ordem-btn-vazio"></span>'}
-          ${idx < marcasOrdenadas.length - 1 ? `<button class="marca-ordem-btn" onclick="moverMarca('${esc(marca)}',1)" title="Mover para baixo">▼</button>` : '<span class="marca-ordem-btn-vazio"></span>'}
-        </div>
       </div>
       <div class="marca-cards">
         ${grupos[marca].map(carrinhaCard).join('')}
@@ -277,6 +306,55 @@ function renderCarrinhas(carrinhas) {
   `).join('');
 
   grid.querySelectorAll('.carrinha-input').forEach(el => autoResize(el));
+}
+
+function renderTabela(carrinhas, grid) {
+  carrinhas.sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999));
+
+  grid.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Img</th>
+            <th>Tipo</th>
+            <th>Marca</th>
+            <th>Matrícula</th>
+            <th>Carga</th>
+            <th>Status</th>
+            <th>Estado</th>
+            <th>Notas</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${carrinhas.map(c => `
+            <tr draggable="true" data-id="${c.id}"
+              ondragstart="dragRowStart(event)"
+              ondragover="dragRowOver(event)"
+              ondragleave="dragRowLeave(event)"
+              ondrop="dragRowDrop(event)"
+              ondragend="dragRowEnd(event)">
+              <td class="td-img td-drag-handle">⠿</td>
+              <td class="td-img">
+                ${c.imagem
+                  ? `<img class="td-thumb" src="${esc(c.imagem)}" onclick="abrirLightbox('${esc(c.imagem)}')" />`
+                  : `<button class="btn-add-img" onclick="abrirImgModal('${c.id}','')">+</button>`}
+              </td>
+              <td style="font-size:16px;">${c.tipoVeiculo === 'Carro' ? '🚗' : c.tipoVeiculo === 'Mota' ? '🏍️' : c.tipoVeiculo === 'Barco' ? '⛵' : '🚐'}</td>
+              <td class="td-marca-edit"><span onclick="editarCampoCard(event,'${c.id}','marca','${esc(c.marca || '')}')">${esc(c.marca || '—')}</span></td>
+              <td class="td-matricula"><span onclick="editarCampoCard(event,'${c.id}','matricula','${esc(c.matricula || '')}')">${esc(c.matricula || '—')}</span></td>
+              <td>${selectInline(c.id, 'carga', c.carga, CARGA_OPTS, 'badge-carga', CARGA_CLASS)}</td>
+              <td>${selectInline(c.id, 'status', c.status, STATUS_OPTS, 'badge-status', STATUS_CLASS)}</td>
+              <td><input class="input-inline" value="${esc(c.estado || '')}" placeholder="—" onchange="updateCarrinha('${c.id}','estado',this.value)" /></td>
+              <td><input class="input-inline" value="${esc(c.notas || '')}" placeholder="—" onchange="updateCarrinha('${c.id}','notas',this.value)" /></td>
+              <td><button class="btn-del" onclick="eliminarCarrinha('${c.id}')">×</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>`;
 }
 
 function selectInline(id, field, value, opts, badgeClass, classMap) {
@@ -500,6 +578,115 @@ function abrirModalCarrinhaMarca(marca) {
 
 window.abrirModalCarrinhaMarca = abrirModalCarrinhaMarca;
 
+// ─── DRAG & DROP TABELA ───────────────────────────────
+
+let _dragRowId = null;
+
+function dragRowStart(e) {
+  _dragRowId = e.currentTarget.dataset.id;
+  e.currentTarget.classList.add('row-dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.stopPropagation();
+}
+
+function dragRowOver(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const tr = e.currentTarget;
+  if (tr.dataset.id !== _dragRowId) tr.classList.add('row-drag-over');
+}
+
+function dragRowLeave(e) {
+  e.currentTarget.classList.remove('row-drag-over');
+}
+
+function dragRowEnd(e) {
+  document.querySelectorAll('tr[data-id]').forEach(tr => tr.classList.remove('row-dragging', 'row-drag-over'));
+}
+
+async function dragRowDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const target = e.currentTarget;
+  target.classList.remove('row-drag-over');
+  if (!_dragRowId || target.dataset.id === _dragRowId) return;
+
+  const tbody = target.closest('tbody');
+  const rows = [...tbody.querySelectorAll('tr[data-id]')];
+  const dragEl = tbody.querySelector(`tr[data-id="${_dragRowId}"]`);
+  const dragIdx = rows.indexOf(dragEl);
+  const targetIdx = rows.indexOf(target);
+
+  if (dragIdx < targetIdx) target.after(dragEl);
+  else target.before(dragEl);
+
+  // Guardar nova ordem
+  const novaOrdem = [...tbody.querySelectorAll('tr[data-id]')];
+  await Promise.all(novaOrdem.map((tr, i) =>
+    db.collection('perfis').doc(perfilAtual).collection('carrinhas').doc(tr.dataset.id).update({ ordem: i })
+  ));
+}
+
+window.dragRowStart = dragRowStart;
+window.dragRowOver  = dragRowOver;
+window.dragRowLeave = dragRowLeave;
+window.dragRowEnd   = dragRowEnd;
+window.dragRowDrop  = dragRowDrop;
+
+// ─── DRAG & DROP GRUPOS ───────────────────────────────
+
+let _dragMarca = null;
+
+function dragMarcaStart(e) {
+  _dragMarca = e.currentTarget.dataset.marca;
+  e.currentTarget.classList.add('marca-dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.stopPropagation();
+}
+
+function dragMarcaOver(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const target = e.currentTarget;
+  if (target.dataset.marca !== _dragMarca) target.classList.add('marca-drag-over');
+}
+
+function dragMarcaLeave(e) {
+  e.currentTarget.classList.remove('marca-drag-over');
+}
+
+function dragMarcaEnd(e) {
+  document.querySelectorAll('.marca-grupo').forEach(el => el.classList.remove('marca-dragging', 'marca-drag-over'));
+}
+
+function dragMarcaDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const target = e.currentTarget;
+  target.classList.remove('marca-drag-over');
+  if (!_dragMarca || target.dataset.marca === _dragMarca) return;
+
+  const grid = document.getElementById('carrinhas-grid');
+  const dragEl = grid.querySelector(`.marca-grupo[data-marca="${_dragMarca}"]`);
+  const targetEl = target;
+  const grupos = [...grid.querySelectorAll('.marca-grupo')];
+  const dragIdx = grupos.indexOf(dragEl);
+  const targetIdx = grupos.indexOf(targetEl);
+
+  if (dragIdx < targetIdx) targetEl.after(dragEl);
+  else targetEl.before(dragEl);
+
+  // Guardar nova ordem
+  const novaOrdem = [...grid.querySelectorAll('.marca-grupo')].map(el => el.dataset.marca);
+  saveMarcaOrdem(novaOrdem);
+}
+
+window.dragMarcaStart = dragMarcaStart;
+window.dragMarcaOver  = dragMarcaOver;
+window.dragMarcaLeave = dragMarcaLeave;
+window.dragMarcaEnd   = dragMarcaEnd;
+window.dragMarcaDrop  = dragMarcaDrop;
+
 function getMarcaOrdem(marcas) {
   const key = `marcaOrdem_${perfilAtual}`;
   const saved = JSON.parse(localStorage.getItem(key) || '[]');
@@ -590,21 +777,64 @@ function mostrarSync(msg, sucesso = false) {
 }
 window.mostrarSync = mostrarSync;
 
-// ─── PESQUISA ─────────────────────────────────────────
+// ─── PESQUISA & FILTROS ───────────────────────────────
 
-function filtrarCarrinhas(query) {
-  const q = query.toLowerCase();
-  document.querySelectorAll('.marca-grupo').forEach(grupo => {
-    let visiveis = 0;
-    grupo.querySelectorAll('.carrinha-card[data-id]').forEach(card => {
-      const mat = (card.querySelector('.carrinha-matricula-text')?.textContent || '').toLowerCase();
-      const show = !q || mat.includes(q);
-      card.style.display = show ? '' : 'none';
-      if (show) visiveis++;
-    });
-    grupo.style.display = visiveis === 0 && q ? 'none' : '';
-  });
+let _todasCarrinhas = [];
+
+function atualizarFiltroMarcas(carrinhas) {
+  const sel = document.getElementById('filtro-marca');
+  if (!sel) return;
+  const atual = sel.value;
+  const marcas = [...new Set(carrinhas.map(c => c.marca?.trim() || '—'))].sort();
+  sel.innerHTML = '<option value="">Todas as marcas</option>' +
+    marcas.map(m => `<option value="${esc(m)}" ${atual === m ? 'selected' : ''}>${esc(m)}</option>`).join('');
 }
+
+function getFiltros() {
+  return {
+    pesquisa: (document.getElementById('search-carrinhas')?.value || '').toLowerCase(),
+    marca:    document.getElementById('filtro-marca')?.value || '',
+    tipo:     document.getElementById('filtro-tipo')?.value || '',
+    carga:    document.getElementById('filtro-carga')?.value || '',
+    status:   document.getElementById('filtro-status')?.value || '',
+  };
+}
+
+function temFiltrosAtivos(f) {
+  return f.pesquisa || f.marca || f.tipo || f.carga || f.status;
+}
+
+function aplicarFiltros() {
+  const f = getFiltros();
+  const btn = document.getElementById('filtro-limpar');
+  if (btn) btn.style.display = temFiltrosAtivos(f) ? '' : 'none';
+
+  const filtradas = _todasCarrinhas.filter(c => {
+    if (f.pesquisa && !(c.matricula || '').toLowerCase().includes(f.pesquisa)) return false;
+    if (f.marca && (c.marca?.trim() || '—') !== f.marca) return false;
+    if (f.tipo && (c.tipoVeiculo || 'Carrinha') !== f.tipo) return false;
+    if (f.carga && (c.carga || '') !== f.carga) return false;
+    if (f.status && (c.status || '') !== f.status) return false;
+    return true;
+  });
+
+  renderCarrinhasInterno(filtradas);
+}
+
+function limparFiltros() {
+  document.getElementById('search-carrinhas').value = '';
+  document.getElementById('filtro-marca').value = '';
+  document.getElementById('filtro-tipo').value = '';
+  document.getElementById('filtro-carga').value = '';
+  document.getElementById('filtro-status').value = '';
+  document.getElementById('filtro-limpar').style.display = 'none';
+  renderCarrinhasInterno(_todasCarrinhas);
+}
+
+function filtrarCarrinhas(query) { aplicarFiltros(); }
+
+window.aplicarFiltros = aplicarFiltros;
+window.limparFiltros  = limparFiltros;
 window.filtrarCarrinhas = filtrarCarrinhas;
 
 // ─── EDITAR CAMPO INLINE ──────────────────────────────
