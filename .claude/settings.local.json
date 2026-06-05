@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Rename-Item \"C:\\\\Users\\\\Utilizador\\\\Desktop\\\\Carrinhas\\\\Carrinhas.html\" \"index.html\")",
+      "PowerShell(Rename-Item \"C:\\\\Users\\\\Utilizador\\\\Desktop\\\\Carrinhas\\\\Carrinhas.html\" \"index.html\")",
+      "Read(//c/Users/Utilizador/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/29270fd2-8e52-4003-99c6-25346f150d40/4df252a4-a402-4264-8510-ceb768f66017/skills/xlsx/**)",
+      "Bash(python -c ' *)"
+    ]
+  }
+}

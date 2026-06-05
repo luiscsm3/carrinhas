@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pt" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestão de Carrinhas</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="carrinhas.css">
+</head>
+<body>
+
+<!-- VISTA DE PERFIS -->
+<div id="view-perfis">
+  <header>
+    <div class="header-left">
+      <h1>Carrinhas</h1>
+      <p class="subtitle">Gestão de frotas</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-ghost" onclick="abrirCalculadora()">🧮 Calculadora</button>
+      <button class="btn-primary" onclick="abrirModalPerfil()">+ Novo perfil</button>
+    </div>
+  </header>
+
+  <div id="perfis-grid" class="perfis-grid"></div>
+  <div id="perfis-empty" class="empty-state" style="display:none;">
+    <div class="empty-icon">🚐</div>
+    <p>Nenhum perfil criado ainda.</p>
+  </div>
+</div>
+
+<!-- VISTA DE CARRINHAS -->
+<div id="view-carrinhas" style="display:none;">
+  <header>
+    <div class="header-left">
+      <button class="btn-back" onclick="voltarPerfis()">← Perfis</button>
+      <div>
+        <h1 id="perfil-nome-titulo">—</h1>
+        <p class="subtitle" id="perfil-contador">0 / 0 carrinhas em uso</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-ghost" onclick="abrirCalculadora()">🧮 Calculadora</button>
+      <button class="btn-primary" onclick="abrirModalCarrinha()">+ Adicionar carrinha</button>
+    </div>
+  </header>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Matrícula</th>
+          <th>Tipo de Carga</th>
+          <th>Status</th>
+          <th>Estado</th>
+          <th>Notas</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="carrinhas-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- VISTA DE CALCULADORA -->
+<div id="view-calculadora" style="display:none;" onclick="fecharCalculadoraOverlay(event)">
+  <div class="calc-card">
+    <div class="calc-card-header">
+      <h2>🧮 Calculadora de Preços</h2>
+      <button class="calc-close" onclick="fecharCalculadora()">×</button>
+    </div>
+
+    <div class="calc-tabs">
+      <button class="calc-tab active" id="tab-drogas" onclick="calcTab('drogas')">💊 Drogas</button>
+      <button class="calc-tab" id="tab-armas" onclick="calcTab('armas')">🔫 Armas</button>
+      <button class="calc-tab" id="tab-acessorios" onclick="calcTab('acessorios')">🎒 Acessórios</button>
+    </div>
+
+    <!-- DROGAS -->
+    <div id="calc-drogas" class="calc-section">
+      <div class="calc-controls">
+        <div class="calc-row">
+          <div class="calc-field">
+            <label>Produto</label>
+            <select id="c-droga" onchange="calcDrogas()">
+              <option value="weed">Weed</option>
+              <option value="cocaina">Cocaína</option>
+              <option value="opio">Ópio</option>
+              <option value="meta">Meta</option>
+              <option value="petroleo">Petróleo</option>
+            </select>
+          </div>
+          <div class="calc-field" style="max-width:100px;">
+            <label>Quantidade</label>
+            <input id="c-qtd" type="number" min="1" value="1" oninput="calcDrogas()" />
+          </div>
+        </div>
+        <div class="calc-field">
+          <label>Tipo</label>
+          <select id="c-tipo" onchange="calcDrogas()">
+            <option value="civil">Civil</option>
+            <option value="limpo">Contratado Limpo</option>
+            <option value="sujo">Contratado Sujo</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-result">
+        <div class="calc-total" id="calc-droga-total">—</div>
+        <div class="calc-detail" id="calc-droga-detail"></div>
+      </div>
+    </div>
+
+    <!-- ARMAS -->
+    <div id="calc-armas" class="calc-section" style="display:none;">
+      <div class="calc-controls">
+        <div class="calc-field">
+          <label>Arma</label>
+          <select id="c-arma" onchange="calcArmas()">
+            <option value="hk">HK</option>
+            <option value="deagle">Deagle</option>
+            <option value="microuzi">Micro Uzi</option>
+            <option value="tec9">Tec 9</option>
+            <option value="mpx">Mpx</option>
+            <option value="tommygun">Tommy Gun</option>
+            <option value="minidraco">Mini Draco</option>
+            <option value="shotgun">Shotgun Tática</option>
+            <option value="p90">P90</option>
+            <option value="qbz">Qbz</option>
+            <option value="ak47">Ak-47</option>
+            <option value="ak12">Ak-12</option>
+            <option value="g36">G36</option>
+            <option value="g2">G2</option>
+            <option value="spaz12">Spaz 12</option>
+          </select>
+        </div>
+        <div class="calc-field">
+          <label>Tipo</label>
+          <select id="c-arma-tipo" onchange="calcArmas()">
+            <option value="civil">Civil</option>
+            <option value="com_mat">Contratado com Materiais</option>
+            <option value="sem_mat">Contratado sem Materiais</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-result">
+        <div class="calc-total" id="calc-arma-total">—</div>
+        <div class="calc-detail" id="calc-arma-detail"></div>
+      </div>
+    </div>
+
+    <!-- ACESSÓRIOS -->
+    <div id="calc-acessorios" class="calc-section" style="display:none;">
+      <div class="calc-controls">
+        <div class="calc-field">
+          <label>Acessório</label>
+          <select id="c-acessorio" onchange="calcAcessorios()">
+            <option value="coletes">Coletes</option>
+            <option value="oxydona">Oxydona</option>
+            <option value="carregador">Carregador Estendido</option>
+            <option value="mira_holo">Mira Holográfica</option>
+            <option value="mira">Mira</option>
+            <option value="compensador">Compensador</option>
+            <option value="drone">Drone</option>
+            <option value="c4">C4</option>
+            <option value="id_falso">ID Falso</option>
+          </select>
+        </div>
+        <div class="calc-field">
+          <label>Tipo</label>
+          <select id="c-acessorio-tipo" onchange="calcAcessorios()">
+            <option value="civil">Civil</option>
+            <option value="com_mat">Contratado com Materiais</option>
+            <option value="sem_mat">Contratado sem Materiais</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-result">
+        <div class="calc-total" id="calc-acessorio-total">—</div>
+        <div class="calc-detail" id="calc-acessorio-detail"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PERFIL -->
+<div class="modal-overlay" id="modal-perfil" onclick="fecharModalPerfil(event)">
+  <div class="modal">
+    <h3>Novo Perfil</h3>
+    <div class="field">
+      <label>Nome do perfil</label>
+      <input id="m-perfil-nome" type="text" placeholder="ex: João Silva" />
+    </div>
+    <div class="field">
+      <label>Palavra-passe</label>
+      <input id="m-perfil-senha" type="password" placeholder="Palavra-passe do perfil" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="fecharModal('modal-perfil')">Cancelar</button>
+      <button class="btn-primary" onclick="criarPerfil()">Criar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PALAVRA-PASSE -->
+<div class="modal-overlay" id="modal-senha" onclick="fecharModalSenha(event)">
+  <div class="modal">
+    <h3>🔒 Perfil protegido</h3>
+    <p class="modal-desc" id="modal-senha-desc"></p>
+    <div class="field" style="margin-top:16px;">
+      <label>Palavra-passe</label>
+      <input id="m-senha-input" type="password" placeholder="Introduz a palavra-passe..." />
+    </div>
+    <p class="senha-erro" id="senha-erro" style="display:none;">Palavra-passe incorreta.</p>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="fecharModal('modal-senha')">Cancelar</button>
+      <button class="btn-primary" onclick="confirmarSenha()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CARRINHA -->
+<div class="modal-overlay" id="modal-carrinha" onclick="fecharModalCarrinha(event)">
+  <div class="modal">
+    <h3>Nova Carrinha</h3>
+    <div class="field">
+      <label>Matrícula</label>
+      <input id="m-matricula" type="text" placeholder="ex: FI7 9VI" />
+    </div>
+    <div class="field">
+      <label>Tipo de Carga</label>
+      <select id="m-carga">
+        <option value="">— Selecionar —</option>
+        <option>Vazio</option>
+        <option>Petróleo</option>
+        <option>Ópio</option>
+        <option>Metafetamina</option>
+        <option>Cocaína</option>
+        <option>Materiais</option>
+        <option>Armas</option>
+        <option>Dinheiro Sujo</option>
+        <option>Erva</option>
+        <option>CAIXAS</option>
+        <option>Cenas Random</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="m-status">
+        <option value="">— Selecionar —</option>
+        <option>Vazio</option>
+        <option>Processado</option>
+        <option>Não Processado</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Estado</label>
+      <input id="m-estado" type="text" placeholder="ex: Cheio, 249..." />
+    </div>
+    <div class="field">
+      <label>Notas</label>
+      <input id="m-notas" type="text" placeholder="Notas opcionais..." />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="fecharModal('modal-carrinha')">Cancelar</button>
+      <button class="btn-primary" onclick="adicionarCarrinha()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="carrinhas.js"></script>
+</body>
+</html>
