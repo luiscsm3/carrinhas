@@ -50,9 +50,16 @@ function atualizarFavicon(theme) {
   img.src = '35.png';
 }
 
+const ICON_SUN  = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+const ICON_MOON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+const ICON_GRID = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`;
+const ICON_LIST = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`;
+const ICON_COMPACT = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="14" x2="21" y2="14"/><line x1="3" y1="18" x2="21" y2="18"/></svg>`;
+const ICON_EXPORT = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+
 function updateThemeBtns(theme) {
-  const label = theme === 'light' ? '☀️ Light' : '🌙 Dark';
-  document.querySelectorAll('[id^="btn-theme"]').forEach(b => b.textContent = label);
+  const icon = theme === 'light' ? ICON_MOON : ICON_SUN;
+  document.querySelectorAll('[id^="btn-theme"]').forEach(b => { b.innerHTML = icon; });
 }
 
 (function() {
@@ -61,6 +68,12 @@ function updateThemeBtns(theme) {
   window.addEventListener('DOMContentLoaded', () => {
     updateThemeBtns(saved);
     initFiltroChips();
+    const bv = document.getElementById('btn-view-toggle');
+    if (bv) bv.innerHTML = viewMode === 'table' ? ICON_LIST : ICON_GRID;
+    const bc = document.getElementById('btn-compact');
+    if (bc) bc.innerHTML = ICON_COMPACT;
+    const bex = document.querySelector('[onclick="exportarDados()"]');
+    if (bex) bex.innerHTML = ICON_EXPORT;
   });
 })();
 
@@ -79,7 +92,7 @@ function toggleViewMode() {
   localStorage.setItem('viewMode', viewMode);
   _sortField = null; _sortDir = 1;
   const btn = document.getElementById('btn-view-toggle');
-  if (btn) btn.textContent = viewMode === 'cards' ? '⊞' : '☰';
+  if (btn) btn.innerHTML = viewMode === 'cards' ? ICON_GRID : ICON_LIST;
   const btnC = document.getElementById('btn-compact');
   if (btnC) btnC.style.display = viewMode === 'table' ? '' : 'none';
   if (unsubCarrinhas) unsubCarrinhas();
@@ -141,30 +154,34 @@ function renderPerfis(perfis) {
   const empty = document.getElementById('perfis-empty');
   if (!perfis.length) { grid.innerHTML = ''; empty.style.display = ''; return; }
   empty.style.display = 'none';
-  grid.innerHTML = perfis.map(p => `
-    <div class="perfil-card" onclick="tentarAbrirPerfil('${p.id}','${esc(p.nome)}')">
+  grid.innerHTML = perfis.map((p, i) => `
+    <div class="perfil-card" onclick="tentarAbrirPerfil('${p.id}','${esc(p.nome)}')" style="animation-delay:${i * 60}ms">
       <button class="perfil-del" onclick="event.stopPropagation(); eliminarPerfil('${p.id}','${esc(p.nome)}')" title="Eliminar">×</button>
+      ${p.foto ? `<div class="perfil-bg" style="background-image:url('${esc(p.foto)}')"></div>` : ''}
       <div class="perfil-avatar" onclick="event.stopPropagation(); abrirImgPerfil('${p.id}')">
         ${p.foto
           ? `<img src="${esc(p.foto)}" class="perfil-avatar-img" />`
           : `<span>${p.nome.charAt(0).toUpperCase()}</span>`}
         <div class="perfil-avatar-overlay">✎</div>
       </div>
-      <div class="perfil-nome">${esc(p.nome)} <span class="perfil-lock">🔒</span></div>
-      <div class="perfil-card-footer">
-        <div class="perfil-info" id="info-${p.id}">— carrinhas</div>
-        <button class="perfil-senha-btn" onclick="event.stopPropagation(); abrirEditarPerfil('${p.id}','${esc(p.nome)}')" title="Alterar palavra-passe">🔑</button>
+      <div class="perfil-nome">${esc(p.nome)} ${p.senha ? '<span class="perfil-lock">🔒</span>' : ''}</div>
+      <div class="perfil-usage" id="usage-${p.id}">
+        <div class="perfil-usage-bar"><div class="perfil-usage-fill" id="fill-${p.id}" style="width:0%"></div></div>
+        <span class="perfil-info" id="info-${p.id}">A carregar...</span>
       </div>
+      <button class="perfil-senha-btn" onclick="event.stopPropagation(); abrirEditarPerfil('${p.id}','${esc(p.nome)}')" title="Alterar palavra-passe">🔑</button>
     </div>
   `).join('');
 
-  // Carregar contadores
+  // Carregar contadores + barra de progresso
   perfis.forEach(p => {
     db.collection('perfis').doc(p.id).collection('carrinhas').get().then(snap => {
       const total = snap.size;
       const emUso = snap.docs.filter(d => d.data().carga && d.data().carga !== 'Vazio').length;
       const el = document.getElementById(`info-${p.id}`);
-      if (el) el.textContent = `${emUso} / ${total} em uso`;
+      const fill = document.getElementById(`fill-${p.id}`);
+      if (el) el.textContent = total === 0 ? 'Sem veículos' : `${emUso} / ${total} em uso`;
+      if (fill) fill.style.width = total === 0 ? '0%' : `${Math.round(emUso / total * 100)}%`;
     });
   });
 }
@@ -289,17 +306,35 @@ function renderStatsPanel(carrinhas) {
   carrinhas.forEach(c => {
     if (c.carga && c.carga !== 'Vazio') byCarga[c.carga] = (byCarga[c.carga] || 0) + 1;
   });
-  const cargaItems = Object.entries(byCarga)
+  // Chips coloridos por carga, clicáveis para filtrar
+  const CARGA_CHIP_STYLE = {
+    'Petróleo':      'background:#14532d;color:#bbf7d0;border-color:#16a34a44',
+    'Ópio':          'background:#2e1065;color:#ddd6fe;border-color:#7c3aed44',
+    'Metafetamina':  'background:#701a75;color:#fae8ff;border-color:#c026d344',
+    'Cocaína':       'background:#78350f;color:#fde68a;border-color:#d9770644',
+    'Materiais':     'background:#7f1d1d;color:#fee2e2;border-color:#dc262644',
+    'Armas':         'background:#1e3a8a;color:#bfdbfe;border-color:#2563eb44',
+    'Dinheiro Sujo': 'background:#064e3b;color:#a7f3d0;border-color:#10b98144',
+    'Erva':          'background:#365314;color:#d9f99d;border-color:#65a30d44',
+    'CAIXAS':        'background:#713f12;color:#fef9c3;border-color:#ca8a0444',
+    'Cenas Random':  'background:#831843;color:#fce7f3;border-color:#db277744',
+  };
+  const cargaChips = Object.entries(byCarga)
     .sort((a, b) => b[1] - a[1])
-    .map(([k, v]) => `<div class="stat-carga-item"><span class="badge-carga ${CARGA_CLASS[k]||''}">${esc(k)}</span><span class="stat-carga-count">${v}</span></div>`)
-    .join('');
+    .map(([k, v]) => {
+      const st = CARGA_CHIP_STYLE[k] || 'background:var(--surface3);color:var(--text-muted)';
+      return `<div class="stat-carga-chip" style="${st};border:1px solid" onclick="toggleFiltroChip('carga','${esc(k)}')" title="Filtrar por ${esc(k)}">
+        <span class="stat-carga-count">${v}</span>
+        <span>${esc(k)}</span>
+      </div>`;
+    }).join('');
 
   panel.innerHTML = `
     <div class="stat-item"><span class="stat-val">${total}</span><span class="stat-label">Total</span></div>
     <div class="stat-item"><span class="stat-val stat-green">${comCarga}</span><span class="stat-label">Com Carga</span></div>
     <div class="stat-item"><span class="stat-val">${proc}</span><span class="stat-label">Processados</span></div>
     <div class="stat-item"><span class="stat-val stat-yellow">${nproc}</span><span class="stat-label">Por Processar</span></div>
-    ${cargaItems.length ? `<div class="stat-separator"></div>${cargaItems}` : ''}
+    ${cargaChips}
   `;
 }
 
@@ -324,9 +359,9 @@ function renderCarrinhasInterno(carrinhas) {
   empty.style.display = 'none';
 
   const btn = document.getElementById('btn-view-toggle');
-  if (btn) btn.textContent = viewMode === 'cards' ? '⊞' : '☰';
+  if (btn) btn.innerHTML = viewMode === 'cards' ? ICON_GRID : ICON_LIST;
   const btnC = document.getElementById('btn-compact');
-  if (btnC) btnC.style.display = viewMode === 'table' ? '' : 'none';
+  if (btnC) { btnC.style.display = viewMode === 'table' ? '' : 'none'; btnC.innerHTML = ICON_COMPACT; }
 
   if (viewMode === 'table') { renderTabela(carrinhas, grid); return; }
 
@@ -357,25 +392,31 @@ function renderCarrinhasInterno(carrinhas) {
            <button class="carrinha-img-edit" onclick="abrirImgModal('${c.id}','${esc(c.imagem)}')">✎</button>`
         : `<span class="carrinha-img-plus" onclick="abrirImgModal('${c.id}','')">+</span>`}
     </div>
-    <div class="carrinha-matricula">
-      <select class="select-tipo-veiculo" onchange="updateCarrinha('${c.id}','tipoVeiculo',this.value)">
-        <option value="Carrinha" ${(c.tipoVeiculo||'Carrinha')==='Carrinha'?'selected':''}>🚐</option>
-        <option value="Carro"    ${c.tipoVeiculo==='Carro'?'selected':''}>🚗</option>
-        <option value="Mota"     ${c.tipoVeiculo==='Mota'?'selected':''}>🏍️</option>
-        <option value="Barco"    ${c.tipoVeiculo==='Barco'?'selected':''}>⛵</option>
-      </select>
-      <span class="carrinha-matricula-text" onclick="editarCampoCard(event,'${c.id}','matricula','${esc(c.matricula || '')}')">${esc(c.matricula || '—')}</span>
-    </div>
-    <div class="carrinha-marca-inline" onclick="filtrarPorMarca('${esc(c.marca || '')}')" title="Filtrar por esta marca">
-      ${esc(c.marca || '—')}
-    </div>
-    <div class="carrinha-badges">
-      ${selectInline(c.id, 'carga', c.carga, CARGA_OPTS, 'badge-carga', CARGA_CLASS)}
-      ${selectInline(c.id, 'status', c.status, STATUS_OPTS, 'badge-status', STATUS_CLASS)}
-    </div>
-    <div class="carrinha-fields">
-      <textarea class="carrinha-input" placeholder="Estado..." onchange="updateCarrinha('${c.id}','estado',this.value)" oninput="autoResize(this)">${esc(c.estado || '')}</textarea>
-      <textarea class="carrinha-input" placeholder="Notas..." onchange="updateCarrinha('${c.id}','notas',this.value)" oninput="autoResize(this)">${esc(c.notas || '')}</textarea>
+    <div class="card-content">
+      <div class="carrinha-marca-inline" onclick="filtrarPorMarca('${esc(c.marca || '')}')" title="Filtrar por esta marca">
+        ${esc(c.marca || '—')}
+      </div>
+      <div class="carrinha-matricula">
+        <select class="select-tipo-veiculo" onchange="updateCarrinha('${c.id}','tipoVeiculo',this.value)">
+          <option value="Carrinha" ${(c.tipoVeiculo||'Carrinha')==='Carrinha'?'selected':''}>🚐</option>
+          <option value="Carro"    ${c.tipoVeiculo==='Carro'?'selected':''}>🚗</option>
+          <option value="Mota"     ${c.tipoVeiculo==='Mota'?'selected':''}>🏍️</option>
+          <option value="Barco"    ${c.tipoVeiculo==='Barco'?'selected':''}>⛵</option>
+        </select>
+        <span class="carrinha-matricula-text" onclick="editarCampoCard(event,'${c.id}','matricula','${esc(c.matricula || '')}')">${esc(c.matricula || '—')}</span>
+      </div>
+      <div class="carrinha-badges">
+        ${selectInline(c.id, 'carga', c.carga, CARGA_OPTS, 'badge-carga', CARGA_CLASS)}
+        ${selectInline(c.id, 'status', c.status, STATUS_OPTS, 'badge-status', STATUS_CLASS)}
+      </div>
+      <div class="carrinha-fields">
+        ${c.estado
+          ? `<textarea class="carrinha-input" placeholder="Estado..." onchange="updateCarrinha('${c.id}','estado',this.value)" oninput="autoResize(this)">${esc(c.estado)}</textarea>`
+          : `<button class="field-add-btn" onclick="expandField(this,'${c.id}','estado')">+ Estado</button>`}
+        ${c.notas
+          ? `<textarea class="carrinha-input" placeholder="Notas..." onchange="updateCarrinha('${c.id}','notas',this.value)" oninput="autoResize(this)">${esc(c.notas)}</textarea>`
+          : `<button class="field-add-btn" onclick="expandField(this,'${c.id}','notas')">+ Notas</button>`}
+      </div>
     </div>
     <div class="card-bottom-actions">
       <button class="card-hist-btn" onclick="verHistorico('${c.id}')" title="Histórico">⟳</button>
@@ -388,8 +429,9 @@ function renderCarrinhasInterno(carrinhas) {
       <div class="carrinha-card-add-inner">+</div>
     </div>`;
 
-  grid.innerHTML = marcasOrdenadas.map((marca) => `
+  grid.innerHTML = marcasOrdenadas.map((marca, i) => `
     <div class="marca-grupo" data-marca="${esc(marca)}"
+      style="animation-delay:${i * 55}ms"
       draggable="true"
       ondragstart="dragMarcaStart(event)"
       ondragover="dragMarcaOver(event)"
@@ -1026,10 +1068,6 @@ function aplicarFiltros() {
   const f = getFiltros();
   const n = contarFiltrosAtivos(f);
   const btn = document.getElementById('filtro-limpar');
-  if (btn) {
-    btn.style.display = n > 0 ? '' : 'none';
-    btn.textContent = n > 0 ? `✕ Limpar (${n})` : '✕ Limpar';
-  }
 
   const filtradas = _todasCarrinhas.filter(c => {
     if (f.pesquisa) {
@@ -1043,6 +1081,13 @@ function aplicarFiltros() {
     if (f.status.size > 0 && !f.status.has(c.status || 'Vazio')) return false;
     return true;
   });
+
+  if (btn) {
+    btn.style.display = n > 0 ? '' : 'none';
+    const total = _todasCarrinhas.length;
+    const resultLabel = n > 0 ? ` · ${filtradas.length}/${total}` : '';
+    btn.innerHTML = n > 0 ? `✕ Limpar${resultLabel}` : '✕ Limpar';
+  }
 
   renderCarrinhasInterno(filtradas);
 }
@@ -1257,6 +1302,19 @@ function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = el.scrollHeight + 'px';
 }
+
+function expandField(btn, id, field) {
+  const placeholder = field === 'estado' ? 'Estado...' : 'Notas...';
+  const ta = document.createElement('textarea');
+  ta.className = 'carrinha-input carrinha-input-new';
+  ta.placeholder = placeholder;
+  ta.addEventListener('change', () => updateCarrinha(id, field, ta.value));
+  ta.addEventListener('input', () => autoResize(ta));
+  btn.replaceWith(ta);
+  ta.focus();
+  autoResize(ta);
+}
+window.expandField = expandField;
 
 window.autoResize = autoResize;
 

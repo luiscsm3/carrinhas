@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestão de Carrinhas</title>
 <link rel="icon" type="image/png" href="35.png">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="Carrinhas.css">
 </head>
 <body>
@@ -41,11 +41,11 @@
       </div>
     </div>
     <div class="header-actions">
-      <button class="btn-theme" id="btn-theme-carrinhas" onclick="toggleTheme()">🌙 Escuro</button>
-      <input class="search-input" id="search-carrinhas" type="text" placeholder="🔍 Pesquisar matrícula" oninput="filtrarCarrinhas(this.value)" />
-      <button class="btn-ghost btn-view-toggle" id="btn-view-toggle" onclick="toggleViewMode()" title="Alternar vista">⊞</button>
-      <button class="btn-ghost btn-compact-toggle" id="btn-compact" onclick="toggleCompactMode()" title="Modo compacto" style="display:none;">⊟</button>
-      <button class="btn-ghost" onclick="exportarDados()">⬇ Exportar</button>
+      <button class="btn-theme" id="btn-theme-carrinhas" onclick="toggleTheme()" title="Tema"></button>
+      <input class="search-input" id="search-carrinhas" type="text" placeholder="Pesquisar..." oninput="filtrarCarrinhas(this.value)" />
+      <button class="btn-icon" id="btn-view-toggle" onclick="toggleViewMode()" title="Alternar vista"></button>
+      <button class="btn-icon btn-compact-toggle" id="btn-compact" onclick="toggleCompactMode()" title="Modo compacto" style="display:none;"></button>
+      <button class="btn-icon" onclick="exportarDados()" title="Exportar dados"></button>
       <button class="btn-ghost" onclick="abrirCalculadora()">Calculadora</button>
       <button class="btn-primary" onclick="abrirModalCarrinha()">+ Adicionar veículo</button>
     </div>
