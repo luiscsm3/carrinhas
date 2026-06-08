@@ -44,6 +44,7 @@
       <button class="btn-theme" id="btn-theme-carrinhas" onclick="toggleTheme()">🌙 Escuro</button>
       <input class="search-input" id="search-carrinhas" type="text" placeholder="🔍 Pesquisar matrícula" oninput="filtrarCarrinhas(this.value)" />
       <button class="btn-ghost btn-view-toggle" id="btn-view-toggle" onclick="toggleViewMode()" title="Alternar vista">⊞</button>
+      <button class="btn-ghost btn-compact-toggle" id="btn-compact" onclick="toggleCompactMode()" title="Modo compacto" style="display:none;">⊟</button>
       <button class="btn-ghost" onclick="exportarDados()">⬇ Exportar</button>
       <button class="btn-ghost" onclick="abrirCalculadora()">Calculadora</button>
       <button class="btn-primary" onclick="abrirModalCarrinha()">+ Adicionar veículo</button>
@@ -52,38 +53,34 @@
 
   <div id="sync-indicator" class="sync-indicator"></div>
 
+  <!-- Painel de estatísticas -->
+  <div id="stats-panel" class="stats-panel"></div>
+
   <div class="filtros-bar" id="filtros-bar">
-    <select class="filtro-select" id="filtro-marca" onchange="aplicarFiltros()">
-      <option value="">Todas as marcas</option>
-    </select>
-    <select class="filtro-select" id="filtro-tipo" onchange="aplicarFiltros()">
-      <option value="">Todos os tipos</option>
-      <option value="Carrinha">🚐 Carrinha</option>
-      <option value="Carro">🚗 Carro</option>
-      <option value="Mota">🏍️ Mota</option>
-      <option value="Barco">⛵ Barco</option>
-    </select>
-    <select class="filtro-select" id="filtro-carga" onchange="aplicarFiltros()">
-      <option value="">Toda a carga</option>
-      <option>Vazio</option>
-      <option>Petróleo</option>
-      <option>Ópio</option>
-      <option>Metafetamina</option>
-      <option>Cocaína</option>
-      <option>Materiais</option>
-      <option>Armas</option>
-      <option>Dinheiro Sujo</option>
-      <option>Erva</option>
-      <option>CAIXAS</option>
-      <option>Cenas Random</option>
-    </select>
-    <select class="filtro-select" id="filtro-status" onchange="aplicarFiltros()">
-      <option value="">Todos os status</option>
-      <option>Vazio</option>
-      <option>Processado</option>
-      <option>Não Processado</option>
-    </select>
-    <button class="filtro-limpar" id="filtro-limpar" onclick="limparFiltros()" style="display:none;">✕ Limpar</button>
+    <!-- Linha 1: Marca + Tipo + Limpar -->
+    <div class="filtros-row">
+      <select class="filtro-select" id="filtro-marca" onchange="aplicarFiltros()">
+        <option value="">Todas as marcas</option>
+      </select>
+      <select class="filtro-select" id="filtro-tipo" onchange="aplicarFiltros()">
+        <option value="">Todos os tipos</option>
+        <option value="Carrinha">🚐 Carrinha</option>
+        <option value="Carro">🚗 Carro</option>
+        <option value="Mota">🏍️ Mota</option>
+        <option value="Barco">⛵ Barco</option>
+      </select>
+      <button class="filtro-limpar" id="filtro-limpar" onclick="limparFiltros()" style="display:none;">✕ Limpar</button>
+    </div>
+    <!-- Linha 2: Carga multi-select -->
+    <div class="filtros-row">
+      <span class="filtro-section-label">Carga</span>
+      <div class="filtro-chips" id="filtro-carga-chips"></div>
+    </div>
+    <!-- Linha 3: Status multi-select -->
+    <div class="filtros-row">
+      <span class="filtro-section-label">Status</span>
+      <div class="filtro-chips" id="filtro-status-chips"></div>
+    </div>
   </div>
 
   <div id="carrinhas-grid" class="carrinhas-grid"></div>
@@ -417,6 +414,17 @@
     <div class="modal-actions">
       <button class="btn-ghost" onclick="fecharModal('modal-editar-perfil')">Cancelar</button>
       <button class="btn-primary" onclick="guardarEdicaoPerfil()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Histórico -->
+<div class="modal-overlay" id="modal-historico" onclick="if(event.target===this)fecharModal('modal-historico')">
+  <div class="modal modal-historico-card">
+    <h3 id="modal-historico-titulo">Histórico</h3>
+    <div id="historico-lista" class="historico-lista"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="fecharModal('modal-historico')">Fechar</button>
     </div>
   </div>
 </div>

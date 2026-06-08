@@ -31,6 +31,23 @@ function toggleTheme() {
   html.setAttribute('data-theme', next);
   localStorage.setItem('theme', next);
   updateThemeBtns(next);
+  atualizarFavicon(next);
+}
+
+function atualizarFavicon(theme) {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 32;
+  const ctx = canvas.getContext('2d');
+  const img = new Image();
+  img.onload = () => {
+    if (theme === 'light') {
+      ctx.filter = 'invert(1)';
+    }
+    ctx.drawImage(img, 0, 0, 32, 32);
+    const link = document.querySelector("link[rel='icon']");
+    if (link) link.href = canvas.toDataURL();
+  };
+  img.src = '35.png';
 }
 
 function updateThemeBtns(theme) {
@@ -41,7 +58,10 @@ function updateThemeBtns(theme) {
 (function() {
   const saved = localStorage.getItem('theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
-  window.addEventListener('DOMContentLoaded', () => updateThemeBtns(saved));
+  window.addEventListener('DOMContentLoaded', () => {
+    updateThemeBtns(saved);
+    initFiltroChips();
+  });
 })();
 
 window.toggleTheme = toggleTheme;
@@ -50,12 +70,18 @@ const db = firebase.firestore();
 let perfilAtual = null;
 let unsubCarrinhas = null;
 let viewMode = localStorage.getItem('viewMode') || 'cards';
+let _compactMode = false;
+let _sortField = null;
+let _sortDir = 1;
 
 function toggleViewMode() {
   viewMode = viewMode === 'cards' ? 'table' : 'cards';
   localStorage.setItem('viewMode', viewMode);
+  _sortField = null; _sortDir = 1;
   const btn = document.getElementById('btn-view-toggle');
   if (btn) btn.textContent = viewMode === 'cards' ? '⊞' : '☰';
+  const btnC = document.getElementById('btn-compact');
+  if (btnC) btnC.style.display = viewMode === 'table' ? '' : 'none';
   if (unsubCarrinhas) unsubCarrinhas();
   unsubCarrinhas = db.collection('perfis').doc(perfilAtual).collection('carrinhas')
     .orderBy('matricula').onSnapshot(snap => {
@@ -63,6 +89,22 @@ function toggleViewMode() {
     });
 }
 window.toggleViewMode = toggleViewMode;
+
+function toggleCompactMode() {
+  _compactMode = !_compactMode;
+  const btn = document.getElementById('btn-compact');
+  if (btn) { btn.title = _compactMode ? 'Modo normal' : 'Modo compacto'; btn.style.opacity = _compactMode ? '1' : ''; }
+  const wrap = document.querySelector('.table-wrap');
+  if (wrap) wrap.classList.toggle('compact', _compactMode);
+}
+window.toggleCompactMode = toggleCompactMode;
+
+function sortTable(field) {
+  if (_sortField === field) _sortDir *= -1;
+  else { _sortField = field; _sortDir = 1; }
+  aplicarFiltros();
+}
+window.sortTable = sortTable;
 
 const CARGA_CLASS = {
   'Vazio': 'carga-vazio',
@@ -229,7 +271,36 @@ function voltarPerfis() {
 function renderCarrinhas(carrinhas) {
   _todasCarrinhas = carrinhas;
   atualizarFiltroMarcas(carrinhas);
+  renderStatsPanel(carrinhas);
   aplicarFiltros();
+}
+
+function renderStatsPanel(carrinhas) {
+  const panel = document.getElementById('stats-panel');
+  if (!panel) return;
+  if (!carrinhas.length) { panel.innerHTML = ''; return; }
+
+  const total    = carrinhas.length;
+  const comCarga = carrinhas.filter(c => c.carga && c.carga !== 'Vazio').length;
+  const proc     = carrinhas.filter(c => c.status === 'Processado').length;
+  const nproc    = carrinhas.filter(c => c.status === 'Não Processado').length;
+
+  const byCarga = {};
+  carrinhas.forEach(c => {
+    if (c.carga && c.carga !== 'Vazio') byCarga[c.carga] = (byCarga[c.carga] || 0) + 1;
+  });
+  const cargaItems = Object.entries(byCarga)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `<div class="stat-carga-item"><span class="badge-carga ${CARGA_CLASS[k]||''}">${esc(k)}</span><span class="stat-carga-count">${v}</span></div>`)
+    .join('');
+
+  panel.innerHTML = `
+    <div class="stat-item"><span class="stat-val">${total}</span><span class="stat-label">Total</span></div>
+    <div class="stat-item"><span class="stat-val stat-green">${comCarga}</span><span class="stat-label">Com Carga</span></div>
+    <div class="stat-item"><span class="stat-val">${proc}</span><span class="stat-label">Processados</span></div>
+    <div class="stat-item"><span class="stat-val stat-yellow">${nproc}</span><span class="stat-label">Por Processar</span></div>
+    ${cargaItems.length ? `<div class="stat-separator"></div>${cargaItems}` : ''}
+  `;
 }
 
 function renderCarrinhasInterno(carrinhas) {
@@ -252,9 +323,10 @@ function renderCarrinhasInterno(carrinhas) {
   }
   empty.style.display = 'none';
 
-  // Atualizar botão de toggle
   const btn = document.getElementById('btn-view-toggle');
   if (btn) btn.textContent = viewMode === 'cards' ? '⊞' : '☰';
+  const btnC = document.getElementById('btn-compact');
+  if (btnC) btnC.style.display = viewMode === 'table' ? '' : 'none';
 
   if (viewMode === 'table') { renderTabela(carrinhas, grid); return; }
 
@@ -294,7 +366,7 @@ function renderCarrinhasInterno(carrinhas) {
       </select>
       <span class="carrinha-matricula-text" onclick="editarCampoCard(event,'${c.id}','matricula','${esc(c.matricula || '')}')">${esc(c.matricula || '—')}</span>
     </div>
-    <div class="carrinha-marca-inline" onclick="editarCampoCard(event,'${c.id}','marca','${esc(c.marca || '')}')">
+    <div class="carrinha-marca-inline" onclick="filtrarPorMarca('${esc(c.marca || '')}')" title="Filtrar por esta marca">
       ${esc(c.marca || '—')}
     </div>
     <div class="carrinha-badges">
@@ -305,7 +377,10 @@ function renderCarrinhasInterno(carrinhas) {
       <textarea class="carrinha-input" placeholder="Estado..." onchange="updateCarrinha('${c.id}','estado',this.value)" oninput="autoResize(this)">${esc(c.estado || '')}</textarea>
       <textarea class="carrinha-input" placeholder="Notas..." onchange="updateCarrinha('${c.id}','notas',this.value)" oninput="autoResize(this)">${esc(c.notas || '')}</textarea>
     </div>
-    <button class="carrinha-btn-del" onclick="eliminarCarrinha('${c.id}')">Remover</button>
+    <div class="card-bottom-actions">
+      <button class="card-hist-btn" onclick="verHistorico('${c.id}')" title="Histórico">⟳</button>
+      <button class="carrinha-btn-del" onclick="eliminarCarrinha('${c.id}')">Remover</button>
+    </div>
   </div>`;
 
   const addCard = marca => `
@@ -338,27 +413,42 @@ function renderCarrinhasInterno(carrinhas) {
 }
 
 function renderTabela(carrinhas, grid) {
-  carrinhas.sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999));
+  let sorted = [...carrinhas];
+  if (_sortField) {
+    sorted.sort((a, b) => {
+      const av = (a[_sortField] || '').toString().toLowerCase();
+      const bv = (b[_sortField] || '').toString().toLowerCase();
+      return av.localeCompare(bv) * _sortDir;
+    });
+  } else {
+    sorted.sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999));
+  }
+
+  const thSort = (label, field) => {
+    const active = _sortField === field;
+    const cls = active ? (_sortDir === 1 ? 'sort-asc' : 'sort-desc') : '';
+    return `<th class="sortable ${cls}" onclick="sortTable('${field}')">${label}</th>`;
+  };
 
   grid.innerHTML = `
-    <div class="table-wrap">
+    <div class="table-wrap${_compactMode ? ' compact' : ''}">
       <table>
         <thead>
           <tr>
             <th></th>
             <th>Img</th>
             <th>Tipo</th>
-            <th>Marca</th>
-            <th>Matrícula</th>
-            <th>Carga</th>
-            <th>Status</th>
-            <th>Estado</th>
-            <th>Notas</th>
+            ${thSort('Marca', 'marca')}
+            ${thSort('Matrícula', 'matricula')}
+            ${thSort('Carga', 'carga')}
+            ${thSort('Status', 'status')}
+            ${thSort('Estado', 'estado')}
+            ${thSort('Notas', 'notas')}
             <th></th>
           </tr>
         </thead>
         <tbody>
-          ${carrinhas.map(c => `
+          ${sorted.map(c => `
             <tr draggable="true" data-id="${c.id}"
               ondragstart="dragRowStart(event)"
               ondragover="dragRowOver(event)"
@@ -378,7 +468,10 @@ function renderTabela(carrinhas, grid) {
               <td>${selectInline(c.id, 'status', c.status, STATUS_OPTS, 'badge-status', STATUS_CLASS)}</td>
               <td><input class="input-inline" value="${esc(c.estado || '')}" placeholder="—" onchange="updateCarrinha('${c.id}','estado',this.value)" /></td>
               <td><input class="input-inline" value="${esc(c.notas || '')}" placeholder="—" onchange="updateCarrinha('${c.id}','notas',this.value)" /></td>
-              <td><button class="btn-del" onclick="eliminarCarrinha('${c.id}')">×</button></td>
+              <td style="display:flex;gap:4px;align-items:center;">
+                <button class="card-hist-btn" onclick="verHistorico('${c.id}')" title="Histórico">⟳</button>
+                <button class="btn-del" onclick="eliminarCarrinha('${c.id}')">×</button>
+              </td>
             </tr>
           `).join('')}
         </tbody>
@@ -426,9 +519,50 @@ async function adicionarCarrinha() {
 
 async function updateCarrinha(id, field, value) {
   mostrarSync('A guardar...');
-  await db.collection('perfis').doc(perfilAtual).collection('carrinhas').doc(id).update({ [field]: value });
+  const carrinha = _todasCarrinhas.find(c => c.id === id);
+  const valorAnterior = carrinha ? (carrinha[field] ?? '') : '';
+  const update = { [field]: value };
+  if (valorAnterior !== value && field !== 'ordem' && field !== 'imagem') {
+    const entrada = { campo: field, anterior: String(valorAnterior), novo: String(value), ts: new Date().toISOString() };
+    const historico = (carrinha?.historico || []).slice(0, 9);
+    update.historico = [entrada, ...historico];
+  }
+  await db.collection('perfis').doc(perfilAtual).collection('carrinhas').doc(id).update(update);
   mostrarSync('✓ Guardado', true);
 }
+
+function verHistorico(id) {
+  const carrinha = _todasCarrinhas.find(c => c.id === id);
+  if (!carrinha) return;
+  const historico = carrinha.historico || [];
+  const lista = document.getElementById('historico-lista');
+  document.getElementById('modal-historico-titulo').textContent = `Histórico — ${carrinha.matricula || '?'}`;
+  if (!historico.length) {
+    lista.innerHTML = '<div class="historico-vazio">Sem alterações registadas.</div>';
+  } else {
+    lista.innerHTML = historico.map(h => `
+      <div class="historico-item">
+        <span class="historico-campo">${esc(h.campo)}</span>
+        <span class="historico-anterior">${esc(h.anterior || '—')}</span>
+        <span class="historico-arrow">→</span>
+        <span class="historico-novo">${esc(h.novo || '—')}</span>
+        <span class="historico-ts">${new Date(h.ts).toLocaleString('pt-PT')}</span>
+      </div>
+    `).join('');
+  }
+  document.getElementById('modal-historico').classList.add('open');
+}
+window.verHistorico = verHistorico;
+
+function filtrarPorMarca(marca) {
+  const sel = document.getElementById('filtro-marca');
+  if (!sel) return;
+  sel.value = marca || '—';
+  aplicarFiltros();
+  // Scroll to filtros
+  document.getElementById('filtros-bar')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+window.filtrarPorMarca = filtrarPorMarca;
 
 async function eliminarCarrinha(id) {
   if (!(await confirmar('Remover este veículo?', 'Remover'))) return;
@@ -782,15 +916,35 @@ function fecharModalPerfil(e) { if (e.target === e.currentTarget) fecharModal('m
 function fecharModalCarrinha(e) { if (e.target === e.currentTarget) fecharModal('modal-carrinha'); }
 
 document.addEventListener('keydown', e => {
+  const tag = e.target.tagName;
+  const emInput = ['INPUT','TEXTAREA','SELECT'].includes(tag);
+  const emModal = document.querySelector('.modal-overlay.open');
+
   if (e.key === 'Escape') {
     fecharModal('modal-perfil');
     fecharModal('modal-carrinha');
     fecharModal('modal-senha');
+    fecharModal('modal-historico');
+    fecharModal('modal-editar-perfil');
+    fecharModal('modal-img');
+    fecharModal('modal-confirm');
     if (document.getElementById('view-calculadora').style.display !== 'none') fecharCalculadora();
   }
   if (e.key === 'Enter' && document.getElementById('modal-perfil').classList.contains('open')) criarPerfil();
   if (e.key === 'Enter' && document.getElementById('modal-carrinha').classList.contains('open')) adicionarCarrinha();
   if (e.key === 'Enter' && document.getElementById('modal-senha').classList.contains('open')) confirmarSenha();
+
+  // Atalhos rápidos (só quando não estamos num input e sem modal aberto)
+  if (!emInput && !emModal) {
+    const emCarrinhas = document.getElementById('view-carrinhas').style.display !== 'none';
+    if (e.key === 'n' && emCarrinhas) { e.preventDefault(); abrirModalCarrinha(); }
+    if (e.key === '/' && emCarrinhas) {
+      e.preventDefault();
+      const s = document.getElementById('search-carrinhas');
+      if (s) { s.focus(); s.select(); }
+    }
+    if (e.key === 't' && emCarrinhas) { e.preventDefault(); toggleViewMode(); }
+  }
 });
 
 // ─── SYNC INDICATOR ───────────────────────────────────
@@ -809,6 +963,35 @@ window.mostrarSync = mostrarSync;
 // ─── PESQUISA & FILTROS ───────────────────────────────
 
 let _todasCarrinhas = [];
+let _filtrosCarga   = new Set();
+let _filtrosStatus  = new Set();
+
+const CARGA_CHIPS_OPTS  = ['Vazio','Petróleo','Ópio','Metafetamina','Cocaína','Materiais','Armas','Dinheiro Sujo','Erva','CAIXAS','Cenas Random'];
+const STATUS_CHIPS_OPTS = ['Vazio','Processado','Não Processado'];
+
+function initFiltroChips() {
+  const cc = document.getElementById('filtro-carga-chips');
+  const sc = document.getElementById('filtro-status-chips');
+  if (!cc || !sc) return;
+  cc.innerHTML = CARGA_CHIPS_OPTS.map(c =>
+    `<button class="filtro-chip" data-carga="${esc(c)}" onclick="toggleFiltroChip('carga','${esc(c)}')">${esc(c)}</button>`
+  ).join('');
+  sc.innerHTML = STATUS_CHIPS_OPTS.map(s =>
+    `<button class="filtro-chip" data-status="${esc(s)}" onclick="toggleFiltroChip('status','${esc(s)}')">${esc(s)}</button>`
+  ).join('');
+}
+
+function toggleFiltroChip(field, value) {
+  const set = field === 'carga' ? _filtrosCarga : _filtrosStatus;
+  if (set.has(value)) set.delete(value); else set.add(value);
+  const attr = field === 'carga' ? 'data-carga' : 'data-status';
+  document.querySelectorAll(`.filtro-chip[${attr}]`).forEach(chip => {
+    chip.classList.toggle('active', set.has(chip.getAttribute(attr)));
+  });
+  aplicarFiltros();
+}
+
+window.toggleFiltroChip = toggleFiltroChip;
 
 function atualizarFiltroMarcas(carrinhas) {
   const sel = document.getElementById('filtro-marca');
@@ -824,26 +1007,40 @@ function getFiltros() {
     pesquisa: (document.getElementById('search-carrinhas')?.value || '').toLowerCase(),
     marca:    document.getElementById('filtro-marca')?.value || '',
     tipo:     document.getElementById('filtro-tipo')?.value || '',
-    carga:    document.getElementById('filtro-carga')?.value || '',
-    status:   document.getElementById('filtro-status')?.value || '',
+    carga:    _filtrosCarga,
+    status:   _filtrosStatus,
   };
 }
 
-function temFiltrosAtivos(f) {
-  return f.pesquisa || f.marca || f.tipo || f.carga || f.status;
+function contarFiltrosAtivos(f) {
+  let n = 0;
+  if (f.pesquisa) n++;
+  if (f.marca) n++;
+  if (f.tipo) n++;
+  n += f.carga.size;
+  n += f.status.size;
+  return n;
 }
 
 function aplicarFiltros() {
   const f = getFiltros();
+  const n = contarFiltrosAtivos(f);
   const btn = document.getElementById('filtro-limpar');
-  if (btn) btn.style.display = temFiltrosAtivos(f) ? '' : 'none';
+  if (btn) {
+    btn.style.display = n > 0 ? '' : 'none';
+    btn.textContent = n > 0 ? `✕ Limpar (${n})` : '✕ Limpar';
+  }
 
   const filtradas = _todasCarrinhas.filter(c => {
-    if (f.pesquisa && !(c.matricula || '').toLowerCase().includes(f.pesquisa)) return false;
+    if (f.pesquisa) {
+      const haystack = [c.matricula, c.marca, c.notas, c.estado, c.carga, c.status]
+        .map(v => (v || '').toLowerCase()).join(' ');
+      if (!haystack.includes(f.pesquisa)) return false;
+    }
     if (f.marca && (c.marca?.trim() || '—') !== f.marca) return false;
     if (f.tipo && (c.tipoVeiculo || 'Carrinha') !== f.tipo) return false;
-    if (f.carga && (c.carga || '') !== f.carga) return false;
-    if (f.status && (c.status || '') !== f.status) return false;
+    if (f.carga.size > 0  && !f.carga.has(c.carga  || 'Vazio')) return false;
+    if (f.status.size > 0 && !f.status.has(c.status || 'Vazio')) return false;
     return true;
   });
 
@@ -851,16 +1048,21 @@ function aplicarFiltros() {
 }
 
 function limparFiltros() {
-  document.getElementById('search-carrinhas').value = '';
-  document.getElementById('filtro-marca').value = '';
-  document.getElementById('filtro-tipo').value = '';
-  document.getElementById('filtro-carga').value = '';
-  document.getElementById('filtro-status').value = '';
-  document.getElementById('filtro-limpar').style.display = 'none';
+  const s = document.getElementById('search-carrinhas');
+  if (s) s.value = '';
+  const m = document.getElementById('filtro-marca');
+  if (m) m.value = '';
+  const t = document.getElementById('filtro-tipo');
+  if (t) t.value = '';
+  _filtrosCarga.clear();
+  _filtrosStatus.clear();
+  document.querySelectorAll('.filtro-chip').forEach(c => c.classList.remove('active'));
+  const btn = document.getElementById('filtro-limpar');
+  if (btn) btn.style.display = 'none';
   renderCarrinhasInterno(_todasCarrinhas);
 }
 
-function filtrarCarrinhas(query) { aplicarFiltros(); }
+function filtrarCarrinhas() { aplicarFiltros(); }
 
 window.aplicarFiltros = aplicarFiltros;
 window.limparFiltros  = limparFiltros;
