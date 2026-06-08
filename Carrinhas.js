@@ -331,41 +331,37 @@ function renderStatsPanel(carrinhas) {
   const proc     = carrinhas.filter(c => c.status === 'Processado').length;
   const nproc    = carrinhas.filter(c => c.status === 'Não Processado').length;
 
-  const byCarga = {};
-  carrinhas.forEach(c => {
-    if (c.carga && c.carga !== 'Vazio') byCarga[c.carga] = (byCarga[c.carga] || 0) + 1;
-  });
-  // Chips coloridos por carga, clicáveis para filtrar
-  const CARGA_CHIP_STYLE = {
-    'Petróleo':      'background:#14532d;color:#bbf7d0;border-color:#16a34a44',
-    'Ópio':          'background:#2e1065;color:#ddd6fe;border-color:#7c3aed44',
-    'Metafetamina':  'background:#701a75;color:#fae8ff;border-color:#c026d344',
-    'Cocaína':       'background:#78350f;color:#fde68a;border-color:#d9770644',
-    'Materiais':     'background:#7f1d1d;color:#fee2e2;border-color:#dc262644',
-    'Armas':         'background:#1e3a8a;color:#bfdbfe;border-color:#2563eb44',
-    'Dinheiro Sujo': 'background:#064e3b;color:#a7f3d0;border-color:#10b98144',
-    'Erva':          'background:#365314;color:#d9f99d;border-color:#65a30d44',
-    'CAIXAS':        'background:#713f12;color:#fef9c3;border-color:#ca8a0444',
-    'Cenas Random':  'background:#831843;color:#fce7f3;border-color:#db277744',
-  };
-  const cargaChips = Object.entries(byCarga)
-    .sort((a, b) => b[1] - a[1])
-    .map(([k, v]) => {
-      const st = CARGA_CHIP_STYLE[k] || 'background:var(--surface3);color:var(--text-muted)';
-      return `<div class="stat-carga-chip" style="${st};border:1px solid" onclick="toggleFiltroChip('carga','${esc(k)}')" title="Filtrar por ${esc(k)}">
-        <span class="stat-carga-count">${v}</span>
-        <span>${esc(k)}</span>
-      </div>`;
-    }).join('');
-
+  // Sidebar: 4 tiles em grelha 2x2
   panel.innerHTML = `
     <div class="stat-item"><span class="stat-val">${total}</span><span class="stat-label">Total</span></div>
     <div class="stat-item"><span class="stat-val stat-green">${comCarga}</span><span class="stat-label">Com Carga</span></div>
     <div class="stat-item"><span class="stat-val">${proc}</span><span class="stat-label">Processados</span></div>
     <div class="stat-item"><span class="stat-val stat-yellow">${nproc}</span><span class="stat-label">Por Processar</span></div>
-    ${cargaChips}
   `;
 }
+
+function atualizarSidebarBrands(grupos, marcasOrdenadas, carrinhasFiltradas) {
+  const nav = document.getElementById('sidebar-brands');
+  if (!nav) return;
+  const idsAtivos = new Set((carrinhasFiltradas || []).map(c => c.marca?.trim() || '—'));
+  nav.innerHTML = marcasOrdenadas.map(marca => {
+    const total = grupos[marca]?.length || 0;
+    const ativo = idsAtivos.has(marca);
+    return `<div class="sidebar-brand-item${ativo ? '' : ' dimmed'}" onclick="scrollToMarca('${esc(marca)}')">
+      <span>${esc(marca)}</span>
+      <span class="sidebar-brand-count">${total}</span>
+    </div>`;
+  }).join('');
+}
+
+function scrollToMarca(marca) {
+  const el = document.querySelector(`.marca-grupo[data-marca="${CSS.escape(marca)}"]`);
+  if (el) {
+    const main = document.querySelector('.main-content');
+    if (main) main.scrollTo({ top: el.offsetTop - 80, behavior: 'smooth' });
+  }
+}
+window.scrollToMarca = scrollToMarca;
 
 function renderCarrinhasInterno(carrinhas) {
   const emUso = carrinhas.filter(c => c.carga && c.carga !== 'Vazio').length;
@@ -464,6 +460,8 @@ function renderCarrinhasInterno(carrinhas) {
     <div class="carrinha-card carrinha-card-add" onclick="abrirModalCarrinhaMarca('${esc(marca)}')">
       <div class="carrinha-card-add-inner">+</div>
     </div>`;
+
+  atualizarSidebarBrands(grupos, marcasOrdenadas, carrinhas);
 
   grid.innerHTML = marcasOrdenadas.map((marca, i) => `
     <div class="marca-grupo" data-marca="${esc(marca)}"
@@ -1006,7 +1004,8 @@ document.addEventListener('keydown', e => {
     fecharModal('modal-editar-perfil');
     fecharModal('modal-img');
     fecharModal('modal-confirm');
-    if (document.getElementById('view-calculadora').style.display !== 'none') fecharCalculadora();
+    const calcEl = document.getElementById('view-calculadora');
+    if (calcEl && calcEl.style.display !== 'none') fecharCalculadora();
   }
   if (e.key === 'Enter' && document.getElementById('modal-perfil').classList.contains('open')) criarPerfil();
   if (e.key === 'Enter' && document.getElementById('modal-carrinha').classList.contains('open')) adicionarCarrinha();
@@ -1437,10 +1436,9 @@ function restaurarEstadoCalc() {
 }
 
 function abrirCalculadora() {
-  _calcViewAnterior = document.getElementById('view-carrinhas').style.display !== 'none' ? 'carrinhas' : 'perfis';
-  document.getElementById('view-perfis').style.display = 'none';
-  document.getElementById('view-carrinhas').style.display = 'none';
-  document.getElementById('view-calculadora').style.display = '';
+  const el = document.getElementById('view-calculadora');
+  if (!el) return;
+  el.style.display = '';
   restaurarEstadoCalc();
   calcDrogas();
 }
@@ -1448,12 +1446,8 @@ function abrirCalculadora() {
 function fecharCalculadoraOverlay(e) { if (e.target === e.currentTarget) fecharCalculadora(); }
 
 function fecharCalculadora() {
-  document.getElementById('view-calculadora').style.display = 'none';
-  if (_calcViewAnterior === 'carrinhas') {
-    document.getElementById('view-carrinhas').style.display = '';
-  } else {
-    document.getElementById('view-perfis').style.display = '';
-  }
+  const el = document.getElementById('view-calculadora');
+  if (el) el.style.display = 'none';
 }
 
 function calcTab(tab) {

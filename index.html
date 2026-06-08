@@ -26,9 +26,9 @@
   </div>
 
   <div class="select-body">
-    <p class="select-eyebrow">Os Pretos · RP</p>
-    <h1 class="select-title">Gestão de Frotas</h1>
-    <p class="select-sub">Escolhe o teu perfil para continuar</p>
+    <p class="select-eyebrow">Jordelândia RP · RP</p>
+    <h1 class="select-title">Gestão de Veículos</h1>
+    <p class="select-sub">Escolhe o teu perfil</p>
 
     <div class="select-stats-row" id="perfis-hero-stats"></div>
 
@@ -246,6 +246,191 @@
       <button class="btn-ghost" onclick="_confirmReject()">Cancelar</button>
       <button class="btn-confirm-danger" onclick="_confirmResolve()">Confirmar</button>
     </div>
+  </div>
+</div>
+
+
+<!-- Calculadora (overlay fixo) -->
+<div id="view-calculadora" style="display:none;" onclick="fecharCalculadoraOverlay(event)">
+  <div class="calc-card">
+    <div class="calc-card-header">
+      <h2>Calculadora</h2>
+      <button class="calc-close" onclick="fecharCalculadora()">×</button>
+    </div>
+    <div class="calc-tabs">
+      <button class="calc-tab active" id="tab-drogas" onclick="calcTab('drogas')">Drogas</button>
+      <button class="calc-tab" id="tab-armas" onclick="calcTab('armas')">Armas</button>
+      <button class="calc-tab" id="tab-acessorios" onclick="calcTab('acessorios')">Acessórios</button>
+    </div>
+
+    <!-- ── Drogas ── -->
+    <div id="calc-drogas">
+      <div class="calc-controls">
+        <div class="calc-row">
+          <div class="calc-field">
+            <label>Droga</label>
+            <select id="c-droga" onchange="calcDrogas()">
+              <option value="weed">Weed</option>
+              <option value="cocaina">Cocaína</option>
+              <option value="opio">Ópio</option>
+              <option value="meta">Meta</option>
+              <option value="petroleo">Petróleo</option>
+            </select>
+          </div>
+          <div class="calc-field">
+            <label>Quantidade</label>
+            <input type="number" id="c-qtd" value="1" min="1" oninput="calcDrogas()" />
+          </div>
+        </div>
+      </div>
+      <table class="calc-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Unit.</th>
+            <th id="calc-droga-th-qtd">(1×)</th>
+            <th id="calc-droga-th-car">Carrinha (600×)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="calc-tr-org">
+            <td>Sujo</td>
+            <td id="cd-unit-sujo">—</td>
+            <td id="cd-total-sujo">—</td>
+            <td id="cd-car-sujo">—</td>
+          </tr>
+          <tr class="calc-tr-cont">
+            <td>Limpo</td>
+            <td id="cd-unit-limpo">—</td>
+            <td id="cd-total-limpo">—</td>
+            <td id="cd-car-limpo">—</td>
+          </tr>
+          <tr class="calc-tr-civil">
+            <td>Civil</td>
+            <td id="cd-unit-civil">—</td>
+            <td id="cd-total-civil">—</td>
+            <td id="cd-car-civil">—</td>
+          </tr>
+        </tbody>
+      </table>
+      <!-- hidden state fields -->
+      <input type="hidden" id="c-tipo" />
+    </div>
+
+    <!-- ── Armas ── -->
+    <div id="calc-armas" style="display:none;">
+      <div class="calc-controls">
+        <div class="calc-row">
+          <div class="calc-field">
+            <label>Arma</label>
+            <select id="c-arma" onchange="calcArmas()">
+              <option value="hk">HK</option>
+              <option value="deagle">Deagle</option>
+              <option value="microuzi">Micro Uzi</option>
+              <option value="tec9">Tec 9</option>
+              <option value="mpx">Mpx</option>
+              <option value="tommygun">Tommy Gun</option>
+              <option value="minidraco">Mini Draco</option>
+              <option value="shotgun">Shotgun Tática</option>
+              <option value="p90">P90</option>
+              <option value="qbz">Qbz</option>
+              <option value="ak47">Ak-47</option>
+              <option value="ak12">Ak-12</option>
+              <option value="g36">G36</option>
+              <option value="g2">G2</option>
+              <option value="spaz12">Spaz 12</option>
+            </select>
+          </div>
+          <div class="calc-field">
+            <label>Quantidade</label>
+            <input type="number" id="c-arma-qtd" value="1" min="1" oninput="calcArmas()" />
+          </div>
+        </div>
+      </div>
+      <table class="calc-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Unit.</th>
+            <th id="calc-arma-th-qtd">(1×)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="calc-tr-civil">
+            <td>Civil</td>
+            <td id="ca-unit-civil">—</td>
+            <td id="ca-total-civil">—</td>
+          </tr>
+          <tr class="calc-tr-org">
+            <td>Com Mat.</td>
+            <td id="ca-unit-com">—</td>
+            <td id="ca-total-com">—</td>
+          </tr>
+          <tr class="calc-tr-cont">
+            <td>Sem Mat.</td>
+            <td id="ca-unit-sem">—</td>
+            <td id="ca-total-sem">—</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="calc-materiais" id="ca-materiais"></p>
+      <input type="hidden" id="c-arma-tipo" />
+    </div>
+
+    <!-- ── Acessórios ── -->
+    <div id="calc-acessorios" style="display:none;">
+      <div class="calc-controls">
+        <div class="calc-row">
+          <div class="calc-field">
+            <label>Acessório</label>
+            <select id="c-acessorio" onchange="calcAcessorios()">
+              <option value="coletes">Coletes</option>
+              <option value="oxydona">Oxydona</option>
+              <option value="carregador">Carregador Estendido</option>
+              <option value="mira_holo">Mira Holográfica</option>
+              <option value="mira">Mira</option>
+              <option value="compensador">Compensador</option>
+              <option value="drone">Drone</option>
+              <option value="c4">C4</option>
+              <option value="id_falso">ID Falso</option>
+            </select>
+          </div>
+          <div class="calc-field">
+            <label>Quantidade</label>
+            <input type="number" id="c-acessorio-qtd" value="1" min="1" oninput="calcAcessorios()" />
+          </div>
+        </div>
+      </div>
+      <table class="calc-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Unit.</th>
+            <th id="calc-ac-th-qtd">(1×)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="calc-tr-civil">
+            <td>Civil</td>
+            <td id="ac-unit-civil">—</td>
+            <td id="ac-total-civil">—</td>
+          </tr>
+          <tr class="calc-tr-org">
+            <td>Com Mat.</td>
+            <td id="ac-unit-com">—</td>
+            <td id="ac-total-com">—</td>
+          </tr>
+          <tr class="calc-tr-cont">
+            <td>Sem Mat.</td>
+            <td id="ac-unit-sem">—</td>
+            <td id="ac-total-sem">—</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="calc-materiais" id="ac-materiais"></p>
+      <input type="hidden" id="c-acessorio-tipo" />
+    </div>
+
   </div>
 </div>
 
