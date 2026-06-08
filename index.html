@@ -5,283 +5,154 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestão de Carrinhas</title>
 <link rel="icon" type="image/png" href="35.png">
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="Carrinhas.css">
 </head>
 <body>
 
-<!-- VISTA DE PERFIS -->
-<div id="view-perfis">
-  <header>
-    <div class="header-left">
-      <h1>Veículos</h1>
-    </div>
-    <div class="header-actions">
-      <button class="btn-theme" id="btn-theme" onclick="toggleTheme()">🌙 Escuro</button>
-      <button class="btn-ghost" onclick="abrirCalculadora()">Calculadora</button>
-      <button class="btn-primary" onclick="abrirModalPerfil()">+ Novo perfil</button>
-    </div>
-  </header>
+<!-- ══════════════════════════════════════════
+     ECRÃ DE SELEÇÃO DE PERFIL
+══════════════════════════════════════════ -->
+<div id="view-perfis" class="select-screen">
 
-  <div id="perfis-grid" class="perfis-grid"></div>
-  <div id="perfis-empty" class="empty-state" style="display:none;">
-    <div class="empty-icon">🚐</div>
-    <p>Nenhum perfil criado ainda.</p>
+  <div class="select-topbar">
+    <div class="select-logo-mark">
+      <img src="35.png" alt="logo" />
+    </div>
+    <div class="select-topbar-actions">
+      <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Tema"></button>
+      <button class="btn-ghost" onclick="abrirCalculadora()">Calculadora</button>
+    </div>
   </div>
+
+  <div class="select-body">
+    <p class="select-eyebrow">Os Pretos · RP</p>
+    <h1 class="select-title">Gestão de Frotas</h1>
+    <p class="select-sub">Escolhe o teu perfil para continuar</p>
+
+    <div class="select-stats-row" id="perfis-hero-stats"></div>
+
+    <div id="perfis-grid" class="perfis-grid"></div>
+
+    <button class="select-new-btn" onclick="abrirModalPerfil()">
+      <span class="select-new-plus">+</span> Novo perfil
+    </button>
+  </div>
+
+  <div id="perfis-empty" style="display:none;">
+    <div class="empty-state">
+      <div class="empty-icon">🚐</div>
+      <p>Nenhum perfil criado ainda.</p>
+    </div>
+  </div>
+
 </div>
 
-<!-- VISTA DE CARRINHAS -->
-<div id="view-carrinhas" style="display:none;">
-  <header>
-    <div class="header-left">
-      <button class="btn-back" onclick="voltarPerfis()">← Perfis</button>
-      <div>
-        <h1 id="perfil-nome-titulo">—</h1>
-        <p class="subtitle" id="perfil-contador">0 / 0 carrinhas em uso</p>
+<!-- ══════════════════════════════════════════
+     APP PRINCIPAL — SIDEBAR + MAIN
+══════════════════════════════════════════ -->
+<div id="view-carrinhas" class="app-shell" style="display:none;">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-header">
+      <button class="sidebar-back-btn" onclick="voltarPerfis()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="sidebar-profile-info">
+        <span class="sidebar-profile-name" id="perfil-nome-titulo">—</span>
+        <span class="sidebar-profile-sub" id="perfil-contador">—</span>
       </div>
+      <button class="btn-theme sidebar-theme-btn" id="btn-theme-carrinhas" onclick="toggleTheme()" title="Tema"></button>
     </div>
-    <div class="header-actions">
-      <button class="btn-theme" id="btn-theme-carrinhas" onclick="toggleTheme()" title="Tema"></button>
-      <input class="search-input" id="search-carrinhas" type="text" placeholder="Pesquisar..." oninput="filtrarCarrinhas(this.value)" />
-      <button class="btn-icon" id="btn-view-toggle" onclick="toggleViewMode()" title="Alternar vista"></button>
-      <button class="btn-icon btn-compact-toggle" id="btn-compact" onclick="toggleCompactMode()" title="Modo compacto" style="display:none;"></button>
-      <button class="btn-icon" onclick="exportarDados()" title="Exportar dados"></button>
-      <button class="btn-ghost" onclick="abrirCalculadora()">Calculadora</button>
-      <button class="btn-primary" onclick="abrirModalCarrinha()">+ Adicionar veículo</button>
+
+    <!-- Stats -->
+    <div class="sidebar-stats" id="stats-panel"></div>
+
+    <!-- Brand nav -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Frotas</div>
+      <nav class="sidebar-brands" id="sidebar-brands"></nav>
     </div>
-  </header>
 
-  <div id="sync-indicator" class="sync-indicator"></div>
+    <!-- Filtros -->
+    <div class="sidebar-section sidebar-section-filters">
+      <div class="sidebar-section-label">
+        Filtros
+        <button class="filtro-limpar sidebar-limpar" id="filtro-limpar" onclick="limparFiltros()" style="display:none;">Limpar</button>
+      </div>
 
-  <!-- Painel de estatísticas -->
-  <div id="stats-panel" class="stats-panel"></div>
+      <input class="search-input sidebar-search" id="search-carrinhas" type="text" placeholder="Pesquisar..." oninput="filtrarCarrinhas(this.value)" />
 
-  <div class="filtros-bar" id="filtros-bar">
-    <!-- Linha 1: Marca + Tipo + Limpar -->
-    <div class="filtros-row">
-      <select class="filtro-select" id="filtro-marca" onchange="aplicarFiltros()">
-        <option value="">Todas as marcas</option>
-      </select>
-      <select class="filtro-select" id="filtro-tipo" onchange="aplicarFiltros()">
+      <select class="filtro-select sidebar-select" id="filtro-tipo" onchange="aplicarFiltros()">
         <option value="">Todos os tipos</option>
         <option value="Carrinha">🚐 Carrinha</option>
         <option value="Carro">🚗 Carro</option>
         <option value="Mota">🏍️ Mota</option>
         <option value="Barco">⛵ Barco</option>
       </select>
-      <button class="filtro-limpar" id="filtro-limpar" onclick="limparFiltros()" style="display:none;">✕ Limpar</button>
-    </div>
-    <!-- Linha 2: Carga multi-select -->
-    <div class="filtros-row">
-      <span class="filtro-section-label">Carga</span>
-      <div class="filtro-chips" id="filtro-carga-chips"></div>
-    </div>
-    <!-- Linha 3: Status multi-select -->
-    <div class="filtros-row">
-      <span class="filtro-section-label">Status</span>
-      <div class="filtro-chips" id="filtro-status-chips"></div>
-    </div>
-  </div>
 
-  <div id="carrinhas-grid" class="carrinhas-grid"></div>
-  <div id="carrinhas-empty" class="empty-state" style="display:none;">
-    <div class="empty-icon"><img src="35.png" style="width:64px;height:64px;object-fit:contain;" /></div>
-    <p>Nenhuma carrinha registada.</p>
-  </div>
+      <select class="filtro-select sidebar-select" id="filtro-marca" onchange="aplicarFiltros()">
+        <option value="">Todas as marcas</option>
+      </select>
+
+      <div class="sidebar-chips-group">
+        <div class="sidebar-chips-label">Carga</div>
+        <div class="filtro-chips" id="filtro-carga-chips"></div>
+      </div>
+      <div class="sidebar-chips-group">
+        <div class="sidebar-chips-label">Status</div>
+        <div class="filtro-chips" id="filtro-status-chips"></div>
+      </div>
+    </div>
+
+    <!-- Footer actions -->
+    <div class="sidebar-footer">
+      <button class="sidebar-footer-btn" onclick="abrirCalculadora()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+        Calculadora
+      </button>
+      <button class="sidebar-footer-btn" onclick="exportarDados()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main-content">
+
+    <div class="main-topbar">
+      <div class="main-topbar-left">
+        <div id="sync-indicator" class="sync-indicator"></div>
+      </div>
+      <div class="main-topbar-right">
+        <button class="btn-icon" id="btn-view-toggle" onclick="toggleViewMode()" title="Alternar vista"></button>
+        <button class="btn-icon btn-compact-toggle" id="btn-compact" onclick="toggleCompactMode()" title="Modo compacto" style="display:none;"></button>
+        <button class="btn-primary" onclick="abrirModalCarrinha()">+ Adicionar veículo</button>
+      </div>
+    </div>
+
+    <div id="carrinhas-grid" class="carrinhas-grid"></div>
+    <div id="carrinhas-empty" style="display:none;"></div>
+
+  </main>
+
 </div>
 
-<!-- VISTA DE CALCULADORA -->
-<div id="view-calculadora" style="display:none;" onclick="fecharCalculadoraOverlay(event)">
-  <div class="calc-card">
-    <div class="calc-card-header">
-      <h2>Calculadora</h2>
-      <button class="calc-close" onclick="fecharCalculadora()">×</button>
-    </div>
+<!-- ══════════════════════════════════════════
+     MODAIS
+══════════════════════════════════════════ -->
+<div id="modais-container">
 
-    <div class="calc-tabs">
-      <button class="calc-tab active" id="tab-drogas" onclick="calcTab('drogas')">Drogas</button>
-      <button class="calc-tab" id="tab-armas" onclick="calcTab('armas')">Armas</button>
-      <button class="calc-tab" id="tab-acessorios" onclick="calcTab('acessorios')">Acessórios</button>
-    </div>
-
-    <!-- DROGAS -->
-    <div id="calc-drogas" class="calc-section">
-      <div class="calc-controls">
-        <div class="calc-row">
-          <div class="calc-field">
-            <label>Produto</label>
-            <select id="c-droga" onchange="calcDrogas()">
-              <option value="weed">Weed</option>
-              <option value="cocaina">Cocaína</option>
-              <option value="opio">Ópio</option>
-              <option value="meta">Meta</option>
-              <option value="petroleo">Petróleo</option>
-            </select>
-          </div>
-          <div class="calc-field" style="max-width:110px;">
-            <label>Quantidade</label>
-            <input id="c-qtd" type="number" min="1" value="1" oninput="calcDrogas()" />
-          </div>
-        </div>
-      </div>
-      <table class="calc-table">
-        <thead>
-          <tr>
-            <th>Tipo</th>
-            <th>Unitário</th>
-            <th id="calc-droga-th-qtd">(1×)</th>
-            <th id="calc-droga-th-car">Carrinha (600×)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="calc-tr-org">
-            <td>Organização</td>
-            <td id="cd-unit-sujo">—</td>
-            <td id="cd-total-sujo">—</td>
-            <td id="cd-car-sujo">—</td>
-          </tr>
-          <tr class="calc-tr-cont">
-            <td>Contratados</td>
-            <td id="cd-unit-limpo">—</td>
-            <td id="cd-total-limpo">—</td>
-            <td id="cd-car-limpo">—</td>
-          </tr>
-          <tr class="calc-tr-civil">
-            <td>Civil</td>
-            <td id="cd-unit-civil">—</td>
-            <td id="cd-total-civil">—</td>
-            <td id="cd-car-civil">—</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- ARMAS -->
-    <div id="calc-armas" class="calc-section" style="display:none;">
-      <div class="calc-controls">
-        <div class="calc-row">
-          <div class="calc-field">
-            <label>Arma</label>
-            <select id="c-arma" onchange="calcArmas()">
-              <option value="hk">HK</option>
-              <option value="deagle">Deagle</option>
-              <option value="microuzi">Micro Uzi</option>
-              <option value="tec9">Tec 9</option>
-              <option value="mpx">Mpx</option>
-              <option value="tommygun">Tommy Gun</option>
-              <option value="minidraco">Mini Draco</option>
-              <option value="shotgun">Shotgun Tática</option>
-              <option value="p90">P90</option>
-              <option value="qbz">Qbz</option>
-              <option value="ak47">Ak-47</option>
-              <option value="ak12">Ak-12</option>
-              <option value="g36">G36</option>
-              <option value="g2">G2</option>
-              <option value="spaz12">Spaz 12</option>
-            </select>
-          </div>
-          <div class="calc-field" style="max-width:110px;">
-            <label>Quantidade</label>
-            <input id="c-arma-qtd" type="number" min="1" value="1" oninput="calcArmas()" />
-          </div>
-        </div>
-      </div>
-      <table class="calc-table">
-        <thead>
-          <tr>
-            <th>Tipo</th>
-            <th>Unitário</th>
-            <th id="calc-arma-th-qtd">(1×)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="calc-tr-civil">
-            <td>Civil</td>
-            <td id="ca-unit-civil">—</td>
-            <td id="ca-total-civil">—</td>
-          </tr>
-          <tr class="calc-tr-cont">
-            <td>Com Materiais</td>
-            <td id="ca-unit-com">—</td>
-            <td id="ca-total-com">—</td>
-          </tr>
-          <tr class="calc-tr-org">
-            <td>Sem Materiais</td>
-            <td id="ca-unit-sem">—</td>
-            <td id="ca-total-sem">—</td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="calc-materiais" id="ca-materiais"></div>
-    </div>
-
-    <!-- ACESSÓRIOS -->
-    <div id="calc-acessorios" class="calc-section" style="display:none;">
-      <div class="calc-controls">
-        <div class="calc-row">
-          <div class="calc-field">
-            <label>Acessório</label>
-            <select id="c-acessorio" onchange="calcAcessorios()">
-              <option value="coletes">Coletes</option>
-              <option value="oxydona">Oxydona</option>
-              <option value="carregador">Carregador Estendido</option>
-              <option value="mira_holo">Mira Holográfica</option>
-              <option value="mira">Mira</option>
-              <option value="compensador">Compensador</option>
-              <option value="drone">Drone</option>
-              <option value="c4">C4</option>
-              <option value="id_falso">ID Falso</option>
-            </select>
-          </div>
-          <div class="calc-field" style="max-width:110px;">
-            <label>Quantidade</label>
-            <input id="c-acessorio-qtd" type="number" min="1" value="1" oninput="calcAcessorios()" />
-          </div>
-        </div>
-      </div>
-      <table class="calc-table">
-        <thead>
-          <tr>
-            <th>Tipo</th>
-            <th>Unitário</th>
-            <th id="calc-ac-th-qtd">(1×)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="calc-tr-civil">
-            <td>Civil</td>
-            <td id="ac-unit-civil">—</td>
-            <td id="ac-total-civil">—</td>
-          </tr>
-          <tr class="calc-tr-cont">
-            <td>Com Materiais</td>
-            <td id="ac-unit-com">—</td>
-            <td id="ac-total-com">—</td>
-          </tr>
-          <tr class="calc-tr-org">
-            <td>Sem Materiais</td>
-            <td id="ac-unit-sem">—</td>
-            <td id="ac-total-sem">—</td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="calc-materiais" id="ac-materiais"></div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL PERFIL -->
+<!-- Modal: Novo Perfil -->
 <div class="modal-overlay" id="modal-perfil" onclick="fecharModalPerfil(event)">
   <div class="modal">
     <h3>Novo Perfil</h3>
-    <div class="field">
-      <label>Nome do perfil</label>
-      <input id="m-perfil-nome" type="text" placeholder="ex: João Silva" />
-    </div>
-    <div class="field">
-      <label>Palavra-passe</label>
-      <input id="m-perfil-senha" type="password" placeholder="Palavra-passe do perfil" />
-    </div>
+    <div class="field"><label>Nome do perfil</label><input id="m-perfil-nome" type="text" placeholder="ex: João Silva" /></div>
+    <div class="field"><label>Palavra-passe</label><input id="m-perfil-senha" type="password" placeholder="Palavra-passe do perfil" /></div>
     <div class="modal-actions">
       <button class="btn-ghost" onclick="fecharModal('modal-perfil')">Cancelar</button>
       <button class="btn-primary" onclick="criarPerfil()">Criar</button>
@@ -289,19 +160,14 @@
   </div>
 </div>
 
-<!-- MODAL PALAVRA-PASSE -->
+<!-- Modal: Palavra-passe -->
 <div class="modal-overlay" id="modal-senha" onclick="fecharModalSenha(event)">
   <div class="modal">
     <h3>🔒 Perfil protegido</h3>
     <p class="modal-desc" id="modal-senha-desc"></p>
-    <div class="field" style="margin-top:16px;">
-      <label>Palavra-passe</label>
-      <input id="m-senha-input" type="password" placeholder="Introduz a palavra-passe..." />
-    </div>
-    <p class="senha-erro" id="senha-erro" style="display:none;">Palavra-passe incorreta.</p>
-    <label class="lembrar-label">
-      <input type="checkbox" id="cb-lembrar" /> Lembrar nesta sessão
-    </label>
+    <div class="field" style="margin-top:16px;"><label>Palavra-passe</label><input id="m-senha-input" type="password" placeholder="Introduz a palavra-passe..." /></div>
+    <p class="senha-erro" id="senha-erro" style="display:none;">Palavra-passe errada.</p>
+    <div class="lembrar-label"><label><input type="checkbox" id="cb-lembrar" /> Lembrar nesta sessão</label></div>
     <div class="modal-actions">
       <button class="btn-ghost" onclick="fecharModal('modal-senha')">Cancelar</button>
       <button class="btn-primary" onclick="confirmarSenha()">Entrar</button>
@@ -309,61 +175,31 @@
   </div>
 </div>
 
-<!-- MODAL CARRINHA -->
+<!-- Modal: Nova Carrinha -->
 <div class="modal-overlay" id="modal-carrinha" onclick="fecharModalCarrinha(event)">
   <div class="modal">
     <h3>Adicionar Veículo</h3>
-    <div class="field">
-      <label>Tipo de Veículo</label>
+    <div class="field"><label>Tipo de Veículo</label>
       <select id="m-tipo-veiculo">
-        <option value="Carrinha">🚐 Carrinha</option>
-        <option value="Carro">🚗 Carro</option>
-        <option value="Mota">🏍️ Mota</option>
-        <option value="Barco">⛵ Barco</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Marca</label>
-      <input id="m-marca" type="text" placeholder="ex: Burrito, Bravado..." />
-    </div>
-    <div class="field">
-      <label>Matrícula</label>
-      <input id="m-matricula" type="text" placeholder="ex: FI7 9VI" />
-    </div>
-    <div class="field">
-      <label>Tipo de Carga</label>
+        <option value="Carrinha">🚐 Carrinha</option><option value="Carro">🚗 Carro</option>
+        <option value="Mota">🏍️ Mota</option><option value="Barco">⛵ Barco</option>
+      </select></div>
+    <div class="field"><label>Marca</label><input id="m-marca" type="text" placeholder="ex: Burrito, Bravado..." /></div>
+    <div class="field"><label>Matrícula</label><input id="m-matricula" type="text" placeholder="ex: LL1 1LL" /></div>
+    <div class="field"><label>Tipo de Carga</label>
       <select id="m-carga">
-        <option value="">— Selecionar —</option>
-        <option>Vazio</option>
-        <option>Petróleo</option>
-        <option>Ópio</option>
-        <option>Metafetamina</option>
-        <option>Cocaína</option>
-        <option>Materiais</option>
-        <option>Armas</option>
-        <option>Dinheiro Sujo</option>
-        <option>Erva</option>
-        <option>CAIXAS</option>
-        <option>Cenas Random</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Status</label>
+        <option value="">— Selecionar —</option><option>Vazio</option><option>Petróleo</option>
+        <option>Ópio</option><option>Metafetamina</option><option>Cocaína</option>
+        <option>Materiais</option><option>Armas</option><option>Dinheiro Sujo</option>
+        <option>Erva</option><option>CAIXAS</option><option>Cenas Random</option>
+      </select></div>
+    <div class="field"><label>Status</label>
       <select id="m-status">
-        <option value="">— Selecionar —</option>
-        <option>Vazio</option>
-        <option>Processado</option>
-        <option>Não Processado</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Estado</label>
-      <input id="m-estado" type="text" placeholder="ex: Cheio, 249..." />
-    </div>
-    <div class="field">
-      <label>Notas</label>
-      <input id="m-notas" type="text" placeholder="Notas opcionais..." />
-    </div>
+        <option value="">— Selecionar —</option><option>Vazio</option>
+        <option>Processado</option><option>Não Processado</option>
+      </select></div>
+    <div class="field"><label>Estado</label><input id="m-estado" type="text" placeholder="ex: Cheio, Vazio..." /></div>
+    <div class="field"><label>Notas</label><input id="m-notas" type="text" placeholder="Notas opcionais..." /></div>
     <div class="modal-actions">
       <button class="btn-ghost" onclick="fecharModal('modal-carrinha')">Cancelar</button>
       <button class="btn-primary" onclick="adicionarCarrinha()">Adicionar</button>
@@ -371,25 +207,19 @@
   </div>
 </div>
 
-<!-- MODAL IMAGEM -->
+<!-- Modal: Imagem -->
 <div class="modal-overlay" id="modal-img" onclick="if(event.target===this)fecharModal('modal-img')">
   <div class="modal">
     <h3 id="modal-img-titulo">📷 Imagem</h3>
     <div class="img-paste-zone" id="img-paste-zone" tabindex="0">
       <img id="img-preview" src="" alt="preview" style="display:none;" />
-      <div class="img-paste-hint" id="img-paste-hint">
-        <span>Ctrl+V para colar print</span>
-        <small>ou usa as opções abaixo</small>
-      </div>
+      <div class="img-paste-hint" id="img-paste-hint"><span>Ctrl+V para colar print</span><small>ou usa as opções abaixo</small></div>
     </div>
     <div class="img-opcoes">
       <button class="btn-ghost" onclick="document.getElementById('img-file-input').click()">Procurar ficheiro</button>
       <input id="img-file-input" type="file" accept="image/*" style="display:none;" onchange="carregarFicheiro(this)" />
     </div>
-    <div class="field" style="margin-top:12px;">
-      <label>URL da imagem (opcional)</label>
-      <input id="m-img-url" type="url" placeholder="https://..." oninput="previewImgUrl()" />
-    </div>
+    <div class="field" style="margin-top:12px;"><label>URL da imagem (opcional)</label><input id="m-img-url" type="url" placeholder="https://..." oninput="previewImgUrl()" /></div>
     <div class="modal-actions">
       <button class="btn-del-img" onclick="removerImagem()">Remover</button>
       <div style="flex:1"></div>
@@ -399,56 +229,30 @@
   </div>
 </div>
 
-<!-- Modal: Editar Perfil -->
-<div class="modal-overlay" id="modal-editar-perfil" onclick="if(event.target===this)fecharModal('modal-editar-perfil')">
-  <div class="modal">
-    <h3>✏️ Editar Perfil</h3>
-    <div class="field">
-      <label>Nome</label>
-      <input id="ep-nome" type="text" placeholder="Nome do perfil" />
-    </div>
-    <div class="field">
-      <label>Nova palavra-passe</label>
-      <input id="ep-senha" type="password" placeholder="Deixar vazio = manter atual" />
-    </div>
-    <div class="modal-actions">
-      <button class="btn-ghost" onclick="fecharModal('modal-editar-perfil')">Cancelar</button>
-      <button class="btn-primary" onclick="guardarEdicaoPerfil()">Guardar</button>
-    </div>
-  </div>
-</div>
-
 <!-- Modal: Histórico -->
 <div class="modal-overlay" id="modal-historico" onclick="if(event.target===this)fecharModal('modal-historico')">
   <div class="modal modal-historico-card">
     <h3 id="modal-historico-titulo">Histórico</h3>
     <div id="historico-lista" class="historico-lista"></div>
-    <div class="modal-actions">
-      <button class="btn-primary" onclick="fecharModal('modal-historico')">Fechar</button>
-    </div>
+    <div class="modal-actions"><button class="btn-primary" onclick="fecharModal('modal-historico')">Fechar</button></div>
   </div>
 </div>
 
-<!-- Lightbox -->
-<div id="lightbox" class="lightbox" onclick="fecharLightbox()" style="display:none;">
-  <img id="lightbox-img" src="" />
-</div>
-
-<!-- Modal: Confirmação -->
+<!-- Modal: Confirmar -->
 <div class="modal-overlay" id="modal-confirm" onclick="if(event.target===this)_confirmReject()">
   <div class="modal modal-confirm-card">
-    <p class="confirm-msg" id="confirm-msg">Tens a certeza?</p>
+    <p class="confirm-msg" id="confirm-msg"></p>
     <div class="modal-actions">
       <button class="btn-ghost" onclick="_confirmReject()">Cancelar</button>
-      <button class="btn-confirm-ok" id="confirm-ok-btn" onclick="_confirmResolve()">Confirmar</button>
+      <button class="btn-confirm-danger" onclick="_confirmResolve()">Confirmar</button>
     </div>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
-
+</div>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="Carrinhas.js"></script>
+
 </body>
 </html>

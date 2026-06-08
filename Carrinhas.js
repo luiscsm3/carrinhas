@@ -154,36 +154,65 @@ function renderPerfis(perfis) {
   const empty = document.getElementById('perfis-empty');
   if (!perfis.length) { grid.innerHTML = ''; empty.style.display = ''; return; }
   empty.style.display = 'none';
+
   grid.innerHTML = perfis.map((p, i) => `
-    <div class="perfil-card" onclick="tentarAbrirPerfil('${p.id}','${esc(p.nome)}')" style="animation-delay:${i * 60}ms">
+    <div class="perfil-card" onclick="tentarAbrirPerfil('${p.id}','${esc(p.nome)}')" style="animation-delay:${i * 70}ms">
       <button class="perfil-del" onclick="event.stopPropagation(); eliminarPerfil('${p.id}','${esc(p.nome)}')" title="Eliminar">×</button>
-      ${p.foto ? `<div class="perfil-bg" style="background-image:url('${esc(p.foto)}')"></div>` : ''}
-      <div class="perfil-avatar" onclick="event.stopPropagation(); abrirImgPerfil('${p.id}')">
-        ${p.foto
-          ? `<img src="${esc(p.foto)}" class="perfil-avatar-img" />`
-          : `<span>${p.nome.charAt(0).toUpperCase()}</span>`}
-        <div class="perfil-avatar-overlay">✎</div>
+      ${p.foto ? `<div class="perfil-bg" style="background-image:url('${esc(p.foto)}')"></div>` : `<div class="perfil-bg perfil-bg-gradient"></div>`}
+      <div class="perfil-card-top">
+        <div class="perfil-avatar" onclick="event.stopPropagation(); abrirImgPerfil('${p.id}')">
+          ${p.foto
+            ? `<img src="${esc(p.foto)}" class="perfil-avatar-img" />`
+            : `<span>${p.nome.charAt(0).toUpperCase()}</span>`}
+          <div class="perfil-avatar-overlay">✎</div>
+        </div>
+        <button class="perfil-senha-btn" onclick="event.stopPropagation(); abrirEditarPerfil('${p.id}','${esc(p.nome)}')" title="Alterar palavra-passe">🔑</button>
       </div>
-      <div class="perfil-nome">${esc(p.nome)} ${p.senha ? '<span class="perfil-lock">🔒</span>' : ''}</div>
-      <div class="perfil-usage" id="usage-${p.id}">
-        <div class="perfil-usage-bar"><div class="perfil-usage-fill" id="fill-${p.id}" style="width:0%"></div></div>
-        <span class="perfil-info" id="info-${p.id}">A carregar...</span>
+      <div class="perfil-body">
+        <div class="perfil-nome">${esc(p.nome)} ${p.senha ? '<span class="perfil-lock">🔒</span>' : ''}</div>
+        <div class="perfil-stats-row" id="stats-row-${p.id}">
+          <span class="perfil-stat-pill" id="pill-total-${p.id}">— veículos</span>
+          <span class="perfil-stat-pill perfil-stat-active" id="pill-uso-${p.id}">— em uso</span>
+        </div>
+        <div class="perfil-usage">
+          <div class="perfil-usage-bar"><div class="perfil-usage-fill" id="fill-${p.id}" style="width:0%"></div></div>
+        </div>
       </div>
-      <button class="perfil-senha-btn" onclick="event.stopPropagation(); abrirEditarPerfil('${p.id}','${esc(p.nome)}')" title="Alterar palavra-passe">🔑</button>
+      <div class="perfil-enter-hint">Entrar →</div>
     </div>
   `).join('');
 
-  // Carregar contadores + barra de progresso
+  // Carregar contadores + hero stats
+  let globalTotal = 0, globalUso = 0, loaded = 0;
   perfis.forEach(p => {
     db.collection('perfis').doc(p.id).collection('carrinhas').get().then(snap => {
       const total = snap.size;
       const emUso = snap.docs.filter(d => d.data().carga && d.data().carga !== 'Vazio').length;
-      const el = document.getElementById(`info-${p.id}`);
-      const fill = document.getElementById(`fill-${p.id}`);
-      if (el) el.textContent = total === 0 ? 'Sem veículos' : `${emUso} / ${total} em uso`;
+      const proc  = snap.docs.filter(d => d.data().status === 'Processado').length;
+      globalTotal += total; globalUso += emUso; loaded++;
+
+      const pillTotal = document.getElementById(`pill-total-${p.id}`);
+      const pillUso   = document.getElementById(`pill-uso-${p.id}`);
+      const fill      = document.getElementById(`fill-${p.id}`);
+      if (pillTotal) pillTotal.textContent = `${total} veículo${total !== 1 ? 's' : ''}`;
+      if (pillUso)   pillUso.textContent   = total === 0 ? 'Vazio' : `${emUso} em uso`;
       if (fill) fill.style.width = total === 0 ? '0%' : `${Math.round(emUso / total * 100)}%`;
+
+      if (loaded === perfis.length) renderHeroStats(globalTotal, globalUso, perfis.length);
     });
   });
+}
+
+function renderHeroStats(total, emUso, nPerfis) {
+  const el = document.getElementById('perfis-hero-stats');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="hero-stat"><span class="hero-stat-val">${nPerfis}</span><span class="hero-stat-label">Perfis</span></div>
+    <div class="hero-stat-div"></div>
+    <div class="hero-stat"><span class="hero-stat-val">${total}</span><span class="hero-stat-label">Veículos</span></div>
+    <div class="hero-stat-div"></div>
+    <div class="hero-stat"><span class="hero-stat-val" style="color:var(--green)">${emUso}</span><span class="hero-stat-label">Em uso</span></div>
+  `;
 }
 
 async function criarPerfil() {
@@ -353,6 +382,15 @@ function renderCarrinhasInterno(carrinhas) {
 
   if (!carrinhas.length) {
     grid.innerHTML = '';
+    const filtrosAtivos = contarFiltrosAtivos(getFiltros()) > 0;
+    empty.innerHTML = filtrosAtivos
+      ? `<div class="empty-filter-state">
+           <div class="empty-filter-icon">🔍</div>
+           <div class="empty-filter-title">Nenhum veículo encontrado</div>
+           <div class="empty-filter-sub">Nenhum veículo corresponde aos filtros activos.</div>
+           <button class="btn-ghost" onclick="limparFiltros()">✕ Limpar filtros</button>
+         </div>`
+      : `<div class="empty-state"><div class="empty-icon">🚐</div><p>Ainda não há veículos neste perfil.</p></div>`;
     empty.style.display = '';
     return;
   }
@@ -393,10 +431,8 @@ function renderCarrinhasInterno(carrinhas) {
         : `<span class="carrinha-img-plus" onclick="abrirImgModal('${c.id}','')">+</span>`}
     </div>
     <div class="card-content">
-      <div class="carrinha-marca-inline" onclick="filtrarPorMarca('${esc(c.marca || '')}')" title="Filtrar por esta marca">
-        ${esc(c.marca || '—')}
-      </div>
-      <div class="carrinha-matricula">
+      <div class="carrinha-marca-inline" onclick="filtrarPorMarca('${esc(c.marca || '')}')" title="Filtrar por esta marca">${esc(c.marca || '—')}</div>
+      <div class="card-placa">
         <select class="select-tipo-veiculo" onchange="updateCarrinha('${c.id}','tipoVeiculo',this.value)">
           <option value="Carrinha" ${(c.tipoVeiculo||'Carrinha')==='Carrinha'?'selected':''}>🚐</option>
           <option value="Carro"    ${c.tipoVeiculo==='Carro'?'selected':''}>🚗</option>
